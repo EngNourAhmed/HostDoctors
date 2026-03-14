@@ -378,8 +378,12 @@ class ReportController extends Controller
         // Store batch_id in session for back button
         session(['last_case_batch_id' => $batch_id]);
 
-        $originalFiles = $reports->where('is_reply', false);
-        $caseReplies = $reports->where('is_reply', true);
+        $originalFiles = $reports->filter(function($report) {
+            return $report->description !== 'Automated PDF Summary';
+        });
+        $caseReplies = $reports->filter(function($report) {
+            return $report->description === 'Automated PDF Summary';
+        });
 
         return view('admin.cases.batch', [
             'reports' => $reports,

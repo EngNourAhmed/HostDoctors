@@ -169,8 +169,12 @@ class ReportController extends Controller
             ->orderByDesc('created_at')
             ->get();
 
-        $caseFiles = $allReports->where('is_reply', false);
-        $adminReplies = $allReports->where('is_reply', true);
+        $caseFiles = $allReports->filter(function($report) {
+            return $report->description !== 'Automated PDF Summary';
+        });
+        $adminReplies = $allReports->filter(function($report) {
+            return $report->description === 'Automated PDF Summary';
+        });
 
         // Fetch text replies from Case Chat Conversation
         $adminMessages = collect();
