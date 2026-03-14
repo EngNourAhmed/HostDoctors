@@ -206,7 +206,6 @@
                     </div>
                 @endforeach
             </div>
-        @endif
             <div class="mt-4">
                 {{ $reports->links('vendor.pagination.custom') }}
             </div>
