@@ -214,30 +214,6 @@
 
 @endsection
 
-@push('scripts')
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Dropdown handler
-            document.addEventListener('click', function(e) {
-                var toggle = e.target.closest('[data-dropdown-toggle]');
-                var allMenus = document.querySelectorAll('[data-dropdown-menu]');
 
-                if (toggle) {
-                    var container = toggle.closest('[data-dropdown-container]');
-                    var menu = container.querySelector('[data-dropdown-menu]');
-                    var isHidden = menu.classList.contains('hidden');
-
-                    allMenus.forEach(function(m) { m.classList.add('hidden'); });
-
-                    if (isHidden) {
-                        menu.classList.remove('hidden');
-                    }
-                } else {
-                    allMenus.forEach(function(m) { m.classList.add('hidden'); });
-                }
-            });
-        });
-    </script>
-@endpush
 
 
