@@ -337,8 +337,6 @@
                     class="bh-nav-link block rounded-lg px-3 py-2 pl-7 text-sm md:text-base font-medium {{ request()->routeIs('admin.cases.*') ? 'bh-nav-link-active' : 'text-slate-300 hover:bg-slate-900 hover:text-white border border-transparent' }}">Cases</a>
                 <a href="{{ route('admin.users.index') }}"
                     class="bh-nav-link block rounded-lg px-3 py-2 pl-7 text-sm md:text-base font-medium {{ request()->routeIs('admin.users.*') ? 'bh-nav-link-active' : 'text-slate-300 hover:bg-slate-900 hover:text-white border border-transparent' }}">Users</a>
-                <a href="{{ route('admin.assistants.index') }}"
-                    class="bh-nav-link block rounded-lg px-3 py-2 pl-7 text-sm md:text-base font-medium {{ request()->routeIs('admin.assistants.*') ? 'bh-nav-link-active' : 'text-slate-300 hover:bg-slate-900 hover:text-white border border-transparent' }}">Assistants</a>
                 <a href="{{ route('admin.stats') }}"
                     class="bh-nav-link block rounded-lg px-3 py-2 pl-7 text-sm md:text-base font-medium {{ request()->routeIs('admin.stats') ? 'bh-nav-link-active' : 'text-slate-300 hover:bg-slate-900 hover:text-white border border-transparent' }}">Analytics</a>
             </nav>
@@ -368,49 +366,41 @@
                 <div class="flex items-center gap-3 text-sm md:text-base ml-auto flex-nowrap whitespace-nowrap">
                     @auth
                         @php
-                            $__unreadAdminMessages = 0;
-                            $__currentAdmin = auth()->user();
-                            $__adminConversations = \App\Models\Conversation::whereIn('type', ['admin_assistant', 'admin_user'])
-                                ->where(function ($q) use ($__currentAdmin) {
-                                    $q->where('admin_id', $__currentAdmin->id)
-                                        ->orWhere('participant_id', $__currentAdmin->id);
-                                })
-                                ->with(['messages' => function ($q) {
-                                    $q->latest()->limit(1);
-                                }])
-                                ->get();
+                            $__user = auth()->user();
+                            $__allUnreadNotifications = $__user->unreadNotifications;
+                            
+                            // Case Chat Notifications count (case_message_received)
+                            $__unreadCaseChatNotifications = $__allUnreadNotifications->filter(function($n) {
+                                return isset($n->data['type']) && $n->data['type'] === 'case_message_received';
+                            })->count();
 
-                            $__unreadAdminMessages = $__adminConversations
-                                ->filter(function ($conversation) use ($__currentAdmin) {
-                                    $last = $conversation->messages->first();
-                                    return $last && $last->sender_id !== $__currentAdmin->id;
-                                })
-                                ->count();
-                                
-                            $__unreadNotifications = auth()->user()->unreadNotifications->count();
+                            // New Case Notifications count (case_created)
+                            $__unreadNewCaseNotifications = $__allUnreadNotifications->filter(function($n) {
+                                return isset($n->data['type']) && $n->data['type'] === 'case_created';
+                            })->count();
                         @endphp
 
-                        <!-- Messages Button -->
+                        <!-- Case Chat Notifications Button -->
                         <button id="bh-messages-btn-header" class="relative h-10 w-10 rounded-full bg-slate-700 hover:bg-slate-600 flex items-center justify-center transition-all duration-200">
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-white">
                                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
                             </svg>
-                            @if($__unreadAdminMessages > 0)
+                            @if($__unreadCaseChatNotifications > 0)
                                 <span class="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
-                                    {{ $__unreadAdminMessages }}
+                                    {{ $__unreadCaseChatNotifications }}
                                 </span>
                             @endif
                         </button>
 
-                        <!-- Notifications Button -->
+                        <!-- New Case Notifications Button -->
                         <button id="bh-notifications-btn-header" class="relative h-10 w-10 rounded-full bg-slate-700 hover:bg-slate-600 flex items-center justify-center transition-all duration-200">
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-white">
                                 <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/>
                                 <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>
                             </svg>
-                            @if($__unreadNotifications > 0)
+                            @if($__unreadNewCaseNotifications > 0)
                                 <span class="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
-                                    {{ $__unreadNotifications }}
+                                    {{ $__unreadNewCaseNotifications }}
                                 </span>
                             @endif
                         </button>
@@ -621,24 +611,32 @@
 
         
 
-        <!-- Notifications Popup -->
+        <!-- Case Submission Notifications Popup -->
         <div id="bh-notifications-popup" class="fixed bottom-24 right-6 z-50 w-96 max-h-[600px] bg-[#0c0c0c] rounded-2xl border border-white/10 shadow-2xl hidden flex-col overflow-hidden">
             <div class="p-4 border-b border-white/10 flex items-center justify-between bg-black/40">
-                <h3 class="text-lg font-bold text-white">Notifications</h3>
+                <h3 class="text-lg font-bold text-white">New Cases</h3>
                 <button id="bh-notifications-close" class="text-slate-400 hover:text-white transition-colors">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M18 6 6 18"/><path d="M6 6l12 12"/>
                     </svg>
                 </button>
             </div>
-            <div class="flex-1 overflow-y-auto p-4 space-y-3">
-                @forelse(auth()->user()->notifications()->take(10)->get() as $notification)
+            <div id="bh-notifications-list" class="flex-1 overflow-y-auto">
+                @php
+                    $__newCaseNotifications = auth()->user()->notifications
+                        ->filter(function($n) {
+                            return isset($n->data['type']) && $n->data['type'] === 'case_created';
+                        })
+                        ->sortByDesc('created_at')
+                        ->take(15);
+                @endphp
+                @forelse($__newCaseNotifications as $notification)
                     <div class="p-3 rounded-xl bg-white/5 border border-white/10 {{ $notification->read_at ? '' : 'border-[#FACC15]/50' }}">
-                        <p class="text-sm text-white">{{ $notification->data['message'] ?? 'New notification' }}</p>
+                        <p class="text-sm text-white">{{ $notification->data['message'] ?? 'New case received' }}</p>
                         <p class="text-xs text-slate-400 mt-1">{{ $notification->created_at->diffForHumans() }}</p>
                     </div>
                 @empty
-                    <p class="text-center text-slate-400 text-sm py-8">No notifications yet</p>
+                    <p class="text-center text-slate-400 text-sm py-8">No new cases yet</p>
                 @endforelse
             </div>
             <div class="p-3 border-t border-white/10 bg-black/40">
@@ -727,83 +725,53 @@
                 ->get();
         @endphp
 
-        <!-- Messages Dropdown -->
+        <!-- Case Chat Notifications Dropdown -->
         <div id="bh-messages-dropdown" class="fixed top-16 right-32 z-[60] w-[400px] max-h-[600px] bg-[#0c0c0c] rounded-2xl border border-white/10 shadow-2xl hidden flex-col overflow-hidden transform origin-top-right transition-all duration-200 scale-95 opacity-0">
             <div class="p-5 border-b border-white/10">
                 <div class="flex items-center justify-between mb-4">
-                    <h3 class="text-2xl font-bold text-white">Chats</h3>
-                    <button id="bh-new-chat-btn" class="h-10 w-10 rounded-full bg-[#FACC15] hover:bg-[#FACC15]/90 flex items-center justify-center transition-colors">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-black">
-                            <path d="M12 5v14M5 12h14"/>
-                        </svg>
-                    </button>
+                    <h3 class="text-2xl font-bold text-white">Case Messages</h3>
                 </div>
-                <input type="text" id="bh-search-chats" placeholder="Search conversations..." class="w-full px-4 py-2.5 bg-[#111111] border border-white/10 rounded-xl text-white placeholder-gray-500 text-sm focus:outline-none focus:border-[#FACC15]">
+                <input type="text" id="bh-search-chats" placeholder="Search messages..." class="w-full px-4 py-2.5 bg-[#111111] border border-white/10 rounded-xl text-white placeholder-gray-500 text-sm focus:outline-none focus:border-[#FACC15]">
             </div>
             
-            <!-- Existing Conversations -->
             <div id="bh-conversations-list" class="flex-1 overflow-y-auto">
-                @forelse($__adminConversations as $conversation)
-                    @php
-                        $lastMessage = $conversation->messages->first();
-                        $isUnread = $lastMessage && $lastMessage->sender_id !== $__currentAdmin->id;
-                        $otherUser = $conversation->admin_id === $__currentAdmin->id 
-                            ? \App\Models\User::find($conversation->participant_id)
-                            : \App\Models\User::find($conversation->admin_id);
-                    @endphp
-                    <button onclick="openChatWindow({{ $otherUser->id ?? 0 }}, '{{ addslashes($otherUser->name ?? 'User') }}', '{{ $otherUser->role ?? 'user' }}')" class="flex items-center gap-3 p-3 hover:bg-white/5 transition-colors border-b border-white/5 {{ $isUnread ? 'bg-[#FACC15]/5' : '' }} w-full text-left">
-                        <div class="relative shrink-0">
-                            <div class="h-12 w-12 rounded-full bg-gradient-to-br from-[#FACC15] to-[#F59E0B] flex items-center justify-center text-black font-bold text-base">
-                                {{ substr($otherUser->name ?? 'U', 0, 1) }}
+                @php
+                    $__caseChatNotifications = auth()->user()->notifications
+                        ->filter(function($n) {
+                            return isset($n->data['type']) && $n->data['type'] === 'case_message_received';
+                        })
+                        ->sortByDesc('created_at')
+                        ->take(15);
+                @endphp
+                @forelse($__caseChatNotifications as $notification)
+                    <div class="flex items-start gap-3 p-4 hover:bg-white/5 transition-colors border-b border-white/5 {{ $notification->read_at ? '' : 'bg-[#FACC15]/5' }}">
+                        <div class="shrink-0">
+                            <div class="h-10 w-10 rounded-full bg-gradient-to-br from-[#FACC15] to-[#F59E0B] flex items-center justify-center text-black font-bold text-sm">
+                                {{ substr($notification->data['title'] ?? 'C', 0, 1) }}
                             </div>
-                            @if($isUnread)
-                                <div class="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-[#FACC15] border-2 border-[#0c0c0c]"></div>
-                            @endif
                         </div>
                         <div class="flex-1 min-w-0">
-                            <p class="text-sm font-semibold text-white truncate">{{ $otherUser->name ?? 'User' }}</p>
-                            <p class="text-xs text-gray-400 truncate mt-0.5">
-                                <span class="{{ $isUnread ? 'font-semibold text-white' : '' }}">{{ $lastMessage->body ?? 'No messages yet' }}</span>
-                            </p>
-                        </div>
-                        <div class="text-right shrink-0">
-                            <p class="text-[10px] text-gray-500">{{ $lastMessage ? $lastMessage->created_at->diffForHumans(null, true) : '' }}</p>
-                            @if($isUnread)
-                                <div class="h-2 w-2 rounded-full bg-[#FACC15] mt-1 ml-auto"></div>
+                            <div class="flex items-center justify-between gap-2">
+                                <p class="text-xs font-bold text-white">{{ $notification->data['title'] ?? 'New Message' }}</p>
+                                <p class="text-[10px] text-gray-500">{{ $notification->created_at->diffForHumans() }}</p>
+                            </div>
+                            <p class="text-xs text-gray-300 mt-1 line-clamp-2 leading-relaxed">{{ $notification->data['message'] ?? '' }}</p>
+                            @if(isset($notification->data['batch_id']))
+                                <a href="{{ route('admin.cases.batch', $notification->data['batch_id']) }}" class="inline-flex items-center gap-1 mt-2 text-[10px] text-[#FACC15] hover:text-white transition-colors">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                                    </svg>
+                                    Go to Chat
+                                </a>
                             @endif
                         </div>
-                    </button>
-                @empty
-                    <div class="text-center text-gray-400 text-sm py-12">No conversations yet</div>
-                @endforelse
-            </div>
-            
-            <!-- New Chat User List (Hidden by default) -->
-            <div id="bh-new-chat-list" class="hidden flex-col h-full">
-                <div class="p-5 border-b border-white/10">
-                    <div class="flex items-center gap-3 mb-4">
-                        <button id="bh-back-to-chats" class="h-10 w-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-white">
-                                <path d="M19 12H5M12 19l-7-7 7-7"/>
-                            </svg>
-                        </button>
-                        <h3 class="text-xl font-bold text-white">New Chat</h3>
+                        @if(!$notification->read_at)
+                            <div class="h-1.5 w-1.5 rounded-full bg-[#FACC15] shrink-0 mt-1"></div>
+                        @endif
                     </div>
-                    <input type="text" id="bh-search-users" placeholder="Search users..." class="w-full px-4 py-2.5 bg-[#111111] border border-white/10 rounded-xl text-white placeholder-gray-500 text-sm focus:outline-none focus:border-[#FACC15]">
-                </div>
-                <div class="flex-1 overflow-y-auto">
-                    @foreach($__allUsers as $user)
-                        <button onclick="openChatWindow({{ $user->id }}, '{{ addslashes($user->name) }}', '{{ $user->role }}')" class="flex items-center gap-3 p-3 hover:bg-white/5 transition-colors border-b border-white/5 w-full text-left">
-                            <div class="h-12 w-12 rounded-full bg-gradient-to-br from-[#FACC15] to-[#F59E0B] flex items-center justify-center text-black font-bold text-base shrink-0">
-                                {{ substr($user->name, 0, 1) }}
-                            </div>
-                            <div class="flex-1 min-w-0">
-                                <p class="text-sm font-semibold text-white truncate">{{ $user->name }}</p>
-                                <p class="text-xs text-gray-400 truncate">{{ ucfirst($user->role) }}</p>
-                            </div>
-                        </button>
-                    @endforeach
-                </div>
+                @empty
+                    <div class="text-center text-gray-400 text-sm py-12">No chat notifications yet</div>
+                @endforelse
             </div>
         </div>
 
@@ -846,7 +814,15 @@
             </div>
             
             <div id="notifications-list" class="flex-1 overflow-y-auto" style="max-height: calc(400px - 120px);">
-                @forelse(auth()->user()->notifications()->take(10)->get() as $notification)
+                @php
+                    $__newCaseNotificationsHeader = auth()->user()->notifications
+                        ->filter(function($n) {
+                            return isset($n->data['type']) && $n->data['type'] === 'case_created';
+                        })
+                        ->sortByDesc('created_at')
+                        ->take(15);
+                @endphp
+                @forelse($__newCaseNotificationsHeader as $notification)
                     <div class="notification-item flex items-start gap-3 p-3 hover:bg-white/5 transition-colors border-b border-white/5 {{ $notification->read_at ? '' : 'bg-[#FACC15]/5' }}" data-read="{{ $notification->read_at ? 'true' : 'false' }}">
                         <div class="h-10 w-10 rounded-full bg-gradient-to-br from-[#FACC15] to-[#F59E0B] flex items-center justify-center text-black shrink-0">
                             @if(isset($notification->data['type']) && str_contains($notification->data['type'], 'message'))
@@ -1013,51 +989,18 @@
                     });
                 }
 
-                // Show new chat list
-                if (newChatBtn) {
-                    newChatBtn.addEventListener('click', (e) => {
-                        e.preventDefault();
-                        conversationsList.classList.add('hidden');
-                        newChatList.classList.remove('hidden');
-                        newChatList.classList.add('flex');
-                    });
-                }
-
-                // Back to conversations
-                if (backToChatsBtn) {
-                    backToChatsBtn.addEventListener('click', (e) => {
-                        e.preventDefault();
-                        newChatList.classList.add('hidden');
-                        newChatList.classList.remove('flex');
-                        conversationsList.classList.remove('hidden');
-                    });
-                }
-
-                // Search chats
+                // Search messages
                 if (searchChats && conversationsList) {
                     searchChats.addEventListener('input', (e) => {
                         const query = e.target.value.toLowerCase();
-                        const items = conversationsList.querySelectorAll('button, a');
+                        const items = conversationsList.querySelectorAll('div.flex');
                         items.forEach(item => {
-                            const nameEl = item.querySelector('.font-semibold');
-                            if (nameEl) {
-                                const name = nameEl.textContent.toLowerCase();
-                                item.style.display = name.includes(query) ? 'flex' : 'none';
-                            }
-                        });
-                    });
-                }
-
-                // Search users
-                if (searchUsers && newChatList) {
-                    searchUsers.addEventListener('input', (e) => {
-                        const query = e.target.value.toLowerCase();
-                        const items = newChatList.querySelectorAll('button, a');
-                        items.forEach(item => {
-                            const nameEl = item.querySelector('.font-semibold');
-                            if (nameEl) {
-                                const name = nameEl.textContent.toLowerCase();
-                                item.style.display = name.includes(query) ? 'flex' : 'none';
+                            const nameEl = item.querySelector('.font-bold');
+                            const msgEl = item.querySelector('.text-xs.text-gray-300');
+                            if (nameEl || msgEl) {
+                                const name = nameEl ? nameEl.textContent.toLowerCase() : '';
+                                const msg = msgEl ? msgEl.textContent.toLowerCase() : '';
+                                item.style.display = (name.includes(query) || msg.includes(query)) ? 'flex' : 'none';
                             }
                         });
                     });

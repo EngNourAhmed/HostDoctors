@@ -23,9 +23,6 @@
                             <th class="px-4 py-3 font-bold text-gray-400 uppercase tracking-widest text-[10px]">Email</th>
                             <th class="px-4 py-3 font-bold text-gray-400 uppercase tracking-widest text-[10px]">Address</th>
                             <th class="px-4 py-3 font-bold text-gray-400 uppercase tracking-widest text-[10px]">Phone</th>
-                            <th class="px-4 py-3 font-bold text-gray-400 uppercase tracking-widest text-[10px]">Role</th>
-                            <th class="px-4 py-3 font-bold text-gray-400 uppercase tracking-widest text-[10px] text-center">Case Status (Latest)</th>
-                            <th class="px-4 py-3 font-bold text-gray-400 uppercase tracking-widest text-[10px] text-center">Case Actions</th>
                         </tr>
                     </thead>
                     <tbody class="divide-none">
@@ -39,55 +36,6 @@
                                 <td class="px-4 py-2.5 text-gray-300 search-target text-[13px] border-b border-white/10">{{ $user->email }}</td>
                                 <td class="px-4 py-2.5 text-gray-400 text-[13px] border-b border-white/10">{{ $user->address ?? '-' }}</td>
                                 <td class="px-4 py-2.5 text-gray-400 search-target text-[13px] border-b border-white/10">{{ $user->phone ?? '-' }}</td>
-                                <td class="px-4 py-2.5 border-b border-white/10">
-                                    @if (auth()->id() === $user->id)
-                                        <span class="inline-flex items-center rounded-md border border-white/10 bg-black/40 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-white">
-                                            Admin (you)
-                                        </span>
-                                    @else
-                                        <form method="POST" action="{{ route('admin.users.updateRole', $user) }}" class="m-0">
-                                            @csrf
-                                            @method('PATCH')
-                                            <div class="relative inline-block">
-                                                <select name="role" onchange="this.form.submit()"
-                                                    class="appearance-none rounded-lg border border-white/10 bg-[#0c0c0c] pl-3 pr-8 py-1.5 text-[10px] font-bold uppercase tracking-widest text-white focus:border-[#FACC15] outline-none transition-all cursor-pointer hover:border-white/20">
-                                                    <option value="user" @selected($user->role === 'user')>User</option>
-                                                    <option value="assistant" @selected($user->role === 'assistant')>Assistant</option>
-                                                    <option value="admin" @selected($user->role === 'admin')>Admin</option>
-                                                </select>
-                                                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
-                                                    <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-                                                </div>
-                                            </div>
-                                        </form>
-                                    @endif
-                                </td>
-                                <td class="px-4 py-2.5 text-center border-b border-white/10">
-                                    @if($user->latestReport)
-                                        <span id="badge-{{ $user->latestReport->id }}" class="bh-badge scale-90 {{ \App\Models\Report::STATUSES[$user->latestReport->status] ?? '' }}">
-                                            {{ $user->latestReport->status }}
-                                        </span>
-                                    @else
-                                        <span class="text-gray-600"> No Cases</span>
-
-                                    @endif
-                                </td>
-                                <td class="px-4 py-2.5 text-center border-b border-white/10">
-                                    @if($user->latestReport)
-                                        <div class="relative inline-block w-full max-w-[140px] scale-90">
-                                            <select onchange="updateReportStatus(this, {{ $user->latestReport->id }})" class="bh-badge w-full appearance-none pr-6 cursor-pointer outline-none hover:opacity-80 transition-opacity {{ \App\Models\Report::STATUSES[$user->latestReport->status] ?? 'border-white/10 bg-[#0c0c0c] text-white' }}">
-                                                @foreach(\App\Models\Report::STATUSES as $statusName => $statusClass)
-                                                    <option value="{{ $statusName }}" class="bg-[#0c0c0c] text-white tracking-normal font-medium normal-case" @selected($user->latestReport->status === $statusName)>{{ $statusName }}</option>
-                                                @endforeach
-                                            </select>
-                                            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-current opacity-70">
-                                                <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-                                            </div>
-                                        </div>
-                                    @else
-                                        <span class="text-gray-600"> No Cases</span>
-                                    @endif
-                                </td>
                             </tr>
                         @endforeach
                     </tbody>
@@ -127,52 +75,5 @@
             input.addEventListener('input', applyFilter);
         })();
 
-        async function updateReportStatus(selectEl, reportId) {
-            const newStatus = selectEl.value;
-            const originalValue = selectEl.getAttribute('data-original-value') || selectEl.querySelector('option[selected]')?.value;
-            
-            selectEl.disabled = true;
-
-            try {
-                const response = await fetch(`/admin/cases/${reportId}/status`, {
-                    method: 'PATCH',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                    },
-                    body: JSON.stringify({ status: newStatus })
-                });
-
-                if (response.ok) {
-                    const data = await response.json();
-                    
-                    const badge = document.getElementById(`badge-${reportId}`);
-                    if (badge && data.class) {
-                        badge.className = `bh-badge ${data.class}`;
-                        badge.innerText = newStatus;
-                    }
-                    
-                    if (data.class) {
-                        const defaultClasses = 'bh-badge w-full appearance-none pr-6 cursor-pointer outline-none hover:opacity-80 transition-opacity';
-                        selectEl.className = `${defaultClasses} ${data.class}`;
-                    }
-                    
-                    selectEl.setAttribute('data-original-value', newStatus);
-
-                    if (window.showToast) {
-                        window.showToast('SUCCESS', 'User has been updated successfully', 'success');
-                    }
-                } else {
-                    alert('Failed to update status');
-                    selectEl.value = originalValue; 
-                }
-            } catch (error) {
-                console.error(error);
-                alert('An error occurred');
-                selectEl.value = originalValue;
-            } finally {
-                selectEl.disabled = false;
-            }
-        }
     </script>
 @endsection

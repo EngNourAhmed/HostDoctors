@@ -16,20 +16,21 @@ class ExportController extends Controller
         $totalAdmins = User::where('role', 'admin')->count();
         $totalAssistants = User::where('role', 'assistant')->count();
 
-        $totalVisits = Visit::where('path', '!=', 'auth/status')->count();
-        $todayVisits = Visit::where('path', '!=', 'auth/status')
+        $totalVisits = Visit::whereNotNull('user_id')->where('path', '!=', 'auth/status')->count();
+        $todayVisits = Visit::whereNotNull('user_id')->where('path', '!=', 'auth/status')
             ->whereDate('created_at', now()->toDateString())
             ->count();
 
-        $dashboardVisits = Visit::where('path', 'like', 'admin%')->count();
+        $dashboardVisits = Visit::whereNotNull('user_id')->where('path', 'like', 'admin%')->count();
         $websiteVisits = $totalVisits - $dashboardVisits;
 
-        $todayDashboardVisits = Visit::where('path', 'like', 'admin%')
+        $todayDashboardVisits = Visit::whereNotNull('user_id')->where('path', 'like', 'admin%')
             ->whereDate('created_at', now()->toDateString())
             ->count();
         $todayWebsiteVisits = $todayVisits - $todayDashboardVisits;
 
-        $last7Days = Visit::selectRaw('DATE(created_at) as date, COUNT(*) as count')
+        $last7Days = Visit::whereNotNull('user_id')
+            ->selectRaw('DATE(created_at) as date, COUNT(*) as count')
             ->where('path', '!=', 'auth/status')
             ->groupBy('date')
             ->orderBy('date', 'desc')
@@ -38,7 +39,8 @@ class ExportController extends Controller
 
         $last7Average = $last7Days->avg('count') ?: 0;
 
-        $topPaths = Visit::selectRaw('path, COUNT(*) as count')
+        $topPaths = Visit::whereNotNull('user_id')
+            ->selectRaw('path, COUNT(*) as count')
             ->where('path', '!=', 'auth/status')
             ->groupBy('path')
             ->orderByDesc('count')
@@ -68,6 +70,15 @@ class ExportController extends Controller
                     return $pageNames[$trimmed];
                 }
 
+                // Shared Routes
+                if (str_starts_with($trimmed, 'reports/shared/batch')) {
+                    return 'Shared: Case Collection';
+                }
+                if (str_starts_with($trimmed, 'reports/shared')) {
+                    if (str_contains($trimmed, 'preview')) return 'Shared: File Preview';
+                    return 'Shared: File View';
+                }
+
                 if (str_starts_with($trimmed, 'admin/users')) {
                     if (str_contains($trimmed, 'reports')) return 'Admin: User Cases';
                     return 'Admin: Users Management';
@@ -94,6 +105,12 @@ class ExportController extends Controller
                 if (str_starts_with($trimmed, 'case/') && str_contains($trimmed, '/chat')) {
                     return 'Case Chat';
                 }
+                if (str_starts_with($trimmed, 'case-files/') && str_contains($trimmed, '/upload')) {
+                    return 'Case File Upload';
+                }
+                if (str_starts_with($trimmed, 'case/') && str_contains($trimmed, '/notes')) {
+                    return 'Case Notes';
+                }
                 if (str_starts_with($trimmed, 'user/reports')) {
                     if (str_contains($trimmed, 'create')) return 'User: Upload Case';
                     if (str_contains($trimmed, 'edit')) return 'User: Edit Case';
@@ -105,11 +122,21 @@ class ExportController extends Controller
                     if (str_contains($trimmed, 'group')) return 'User: Group Chats';
                     return 'User: Chats';
                 }
+                if (str_starts_with($trimmed, 'user/notifications')) {
+                    return 'User: Notifications';
+                }
                 if (str_starts_with($trimmed, 'user')) {
                     return 'User Dashboard';
                 }
 
-                return '/' . $trimmed;
+                // Fallback: Prettify unknown paths
+                $parts = explode('/', $trimmed);
+                $pretty = collect($parts)
+                    ->filter(fn($p) => !preg_match('/^[0-9a-f-]{36}$/i', $p) && !is_numeric($p)) // filter out UUIDs and numbers
+                    ->map(fn($p) => ucfirst($p))
+                    ->join(': ');
+
+                return $pretty ?: '/' . $trimmed;
             })
             ->values();
 
@@ -117,6 +144,11 @@ class ExportController extends Controller
             ->orderByDesc('created_at')
             ->limit(25)
             ->get(['name', 'role', 'phone', 'address', 'created_at']);
+
+        // Full case status breakdown for the PDF
+        $caseStats = \App\Models\Report::selectRaw('status, COUNT(*) as count')
+            ->groupBy('status')
+            ->get();
 
         $data = [
             'totalUsers' => $totalUsers,
@@ -135,6 +167,7 @@ class ExportController extends Controller
             'recentUsers' => $recentUsers,
             'pendingCasesCount' => $pendingCasesCount,
             'otherCasesCount' => $otherCasesCount,
+            'caseStats' => $caseStats,
             'generatedAt' => now()->format('Y-m-d H:i'),
             'generatedBy' => optional(auth()->user())->name,
         ];

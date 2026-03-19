@@ -4,6 +4,16 @@
 @section('header', 'Visitors Analytics')
 
 @section('content')
+    <div class="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <h2 class="text-sm md:text-base font-semibold text-slate-200">Analytics Overview</h2>
+        <a href="{{ route('admin.export.dashboard') }}" id="export-analytics-btn"
+            class="btn btn-yellow relative overflow-hidden group min-w-[140px]">
+            <span class="btn-text">Export as PDF</span>
+            <div class="btn-spinner hidden absolute inset-0 flex items-center justify-center bg-[#FACC15]">
+                <div class="premium-spinner text-black"></div>
+            </div>
+        </a>
+    </div>
     <div class="grid gap-6 md:grid-cols-3 mb-10">
         <div class="bh-card p-6 md:p-7">
             <p class="text-sm uppercase tracking-[0.22em] text-slate-400">Total Visits</p>
@@ -269,6 +279,58 @@
                                 }
                             }
                         }
+                    }
+                });
+            }
+
+            const exportBtn = document.getElementById('export-analytics-btn');
+            if (exportBtn) {
+                exportBtn.addEventListener('click', async function(e) {
+                    e.preventDefault();
+                    
+                    const btn = this;
+                    const text = btn.querySelector('.btn-text');
+                    const spinner = btn.querySelector('.btn-spinner');
+                    
+                    // Show spinner
+                    text.classList.add('invisible');
+                    spinner.classList.remove('hidden');
+                    
+                    try {
+                        const response = await fetch(btn.href, {
+                            method: 'GET',
+                            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                        });
+                        
+                        if (!response.ok) throw new Error('Download failed');
+                        
+                        // Get filename from header if possible
+                        let filename = 'analytics_report.pdf';
+                        const disposition = response.headers.get('Content-Disposition');
+                        if (disposition && disposition.indexOf('attachment') !== -1) {
+                            const filenameRegex = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/;
+                            const matches = filenameRegex.exec(disposition);
+                            if (matches != null && matches[1]) { 
+                                filename = matches[1].replace(/['"]/g, '');
+                            }
+                        }
+                        
+                        const blob = await response.blob();
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = filename;
+                        document.body.appendChild(a);
+                        a.click();
+                        a.remove();
+                        window.URL.revokeObjectURL(url);
+                    } catch (error) {
+                        console.error(error);
+                        alert('Export failed. Please try again later.');
+                    } finally {
+                        // Hide spinner
+                        text.classList.remove('invisible');
+                        spinner.classList.add('hidden');
                     }
                 });
             }

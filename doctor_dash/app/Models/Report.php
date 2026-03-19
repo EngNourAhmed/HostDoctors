@@ -80,4 +80,9 @@ class Report extends Model
         return $this->hasOne(Conversation::class, 'batch_id', 'batch_id')
             ->where('type', 'case_chat');
     }
+
+    public function caseNotes()
+    {
+        return $this->hasMany(CaseNote::class, 'batch_id', 'batch_id');
+    }
 }

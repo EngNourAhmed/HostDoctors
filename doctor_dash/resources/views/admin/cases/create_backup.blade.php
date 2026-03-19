@@ -145,21 +145,7 @@
                         <div id="full-arch-fields" class="space-y-8 {{ request('type') === 'full_arch' ? '' : 'hidden' }}">
                             <!-- Arch Type -->
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                <div class="space-y-4">
-                                    <label class="block text-[10px] font-black uppercase tracking-widest text-emerald-400">Surgical Arch <span class="text-red-500">*</span></label>
-                                    <div class="flex flex-col gap-3">
-                                        @foreach(['mandible' => 'Mandible', 'maxilla' => 'Maxilla', 'both' => 'Both (Double Arches)'] as $val => $label)
-                                            <label class="relative flex items-center p-4 rounded-xl border border-white/5 bg-white/5 cursor-pointer hover:bg-white/10 transition-all group/opt has-[:checked]:border-emerald-500/50 has-[:checked]:bg-emerald-500/5">
-                                                <input type="radio" name="arch_type" value="{{ $val }}" class="sr-only">
-                                                <div class="h-5 w-5 rounded-full border-2 border-white/20 flex items-center justify-center group-hover/opt:border-emerald-500/50 transition-colors mr-4 group-has-[:checked]/opt:border-emerald-500">
-                                                    <div class="h-2.5 w-2.5 rounded-full bg-emerald-500 scale-0 group-has-[:checked]/opt:scale-100 transition-transform"></div>
-                                                </div>
-                                                <span class="text-sm font-bold text-white/70 group-has-[:checked]/opt:text-white">{{ $label }}</span>
-                                            </label>
-                                        @endforeach
-                                    </div>
-                                </div>
-
+                              
                                 <!-- Package Selection -->
                                 <div class="space-y-4">
                                     <label class="block text-[10px] font-black uppercase tracking-widest text-emerald-400">Select Services <span class="text-red-500">*</span></label>

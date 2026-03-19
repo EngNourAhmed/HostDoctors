@@ -26,10 +26,9 @@ class DashboardController extends Controller
 
         $totalUsers = User::count();
         $totalAdmins = User::where('role', 'admin')->count();
-        $totalAssistants = User::where('role', 'assistant')->count();
 
-        $totalVisits = Visit::where('path', '!=', 'auth/status')->count();
-        $todayVisits = Visit::where('path', '!=', 'auth/status')
+        $totalVisits = Visit::whereNotNull('user_id')->where('path', '!=', 'auth/status')->count();
+        $todayVisits = Visit::whereNotNull('user_id')->where('path', '!=', 'auth/status')
             ->whereDate('created_at', now()->toDateString())
             ->count();
 
@@ -39,7 +38,6 @@ class DashboardController extends Controller
         return view('admin.dashboard', [
             'totalUsers' => $totalUsers,
             'totalAdmins' => $totalAdmins,
-            'totalAssistants' => $totalAssistants,
             'totalVisits' => $totalVisits,
             'todayVisits' => $todayVisits,
             'pendingCasesCount' => $pendingCasesCount,
@@ -49,18 +47,19 @@ class DashboardController extends Controller
 
     public function stats()
     {
-        $totalVisits = Visit::count();
-        $todayVisits = Visit::whereDate('created_at', now()->toDateString())->count();
+        $totalVisits = Visit::whereNotNull('user_id')->count();
+        $todayVisits = Visit::whereNotNull('user_id')->whereDate('created_at', now()->toDateString())->count();
 
-        $dashboardVisits = Visit::where('path', 'like', 'admin%')->count();
+        $dashboardVisits = Visit::whereNotNull('user_id')->where('path', 'like', 'admin%')->count();
         $websiteVisits = $totalVisits - $dashboardVisits;
 
-        $todayDashboardVisits = Visit::where('path', 'like', 'admin%')
+        $todayDashboardVisits = Visit::whereNotNull('user_id')->where('path', 'like', 'admin%')
             ->whereDate('created_at', now()->toDateString())
             ->count();
         $todayWebsiteVisits = $todayVisits - $todayDashboardVisits;
 
-        $last7Days = Visit::selectRaw('DATE(created_at) as date, COUNT(*) as count')
+        $last7Days = Visit::whereNotNull('user_id')
+            ->selectRaw('DATE(created_at) as date, COUNT(*) as count')
             ->where('path', '!=', 'auth/status')
             ->groupBy('date')
             ->orderBy('date', 'desc')
@@ -72,7 +71,8 @@ class DashboardController extends Controller
         $last7Labels = $last7Sorted->pluck('date');
         $last7Counts = $last7Sorted->pluck('count');
 
-        $topPaths = Visit::selectRaw('path, COUNT(*) as count')
+        $topPaths = Visit::whereNotNull('user_id')
+            ->selectRaw('path, COUNT(*) as count')
             ->where('path', '!=', 'auth/status')
             ->groupBy('path')
             ->orderByDesc('count')
@@ -136,6 +136,12 @@ class DashboardController extends Controller
                 if (Str::startsWith($trimmed, 'case/') && str_contains($trimmed, '/chat')) {
                     return 'Case Chat';
                 }
+                if (Str::startsWith($trimmed, 'case-files/') && str_contains($trimmed, '/upload')) {
+                    return 'Case File Upload';
+                }
+                if (Str::startsWith($trimmed, 'case/') && str_contains($trimmed, '/notes')) {
+                    return 'Case Notes';
+                }
 
                 // User Routes
                 if (Str::startsWith($trimmed, 'user/reports')) {
@@ -149,11 +155,21 @@ class DashboardController extends Controller
                     if (str_contains($trimmed, 'group')) return 'User: Group Chats';
                     return 'User: Chats';
                 }
+                if (Str::startsWith($trimmed, 'user/notifications')) {
+                    return 'User: Notifications';
+                }
                 if (Str::startsWith($trimmed, 'user')) {
                     return 'User Dashboard';
                 }
 
-                return '/' . $trimmed;
+                // Fallback: Prettify unknown paths
+                $parts = explode('/', $trimmed);
+                $pretty = collect($parts)
+                    ->filter(fn($p) => !preg_match('/^[0-9a-f-]{36}$/i', $p) && !is_numeric($p)) // filter out UUIDs and numbers
+                    ->map(fn($p) => ucfirst($p))
+                    ->join(': ');
+
+                return $pretty ?: '/' . $trimmed;
             })
             ->values();
         $topPathCounts = $topPaths->pluck('count');

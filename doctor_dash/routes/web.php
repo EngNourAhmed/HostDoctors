@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\ExportController;
 use App\Http\Controllers\CaseChatController;
+use App\Http\Controllers\CaseNoteController;
 use App\Models\Report;
 use App\Http\Controllers\User\DashboardController as UserDashboardController;
 use App\Http\Controllers\User\ReportController as UserReportController;
@@ -254,6 +255,12 @@ Route::middleware(['auth'])
     ->group(function () {
         Route::get('/case/{batchId}/chat/messages', [CaseChatController::class, 'messages'])->name('case.chat.messages');
         Route::post('/case/{batchId}/chat/send', [CaseChatController::class, 'send'])->name('case.chat.send');
+        Route::post('/case/{batchId}/notes', [CaseNoteController::class, 'store'])->name('case.notes.store');
+        Route::post('/case-notes/{note}', [CaseNoteController::class, 'update'])->name('case.notes.update');
+        Route::get('/case-notes/{note}/edit', [CaseNoteController::class, 'edit'])->name('case.notes.edit');
+        Route::delete('/case-notes/{note}', [CaseNoteController::class, 'destroy'])->name('case.notes.destroy');
+        Route::post('/case-files/{batch_id}/upload', [App\Http\Controllers\CaseFileController::class, 'store'])->name('case.files.upload');
+        Route::delete('/case-files/{report}', [App\Http\Controllers\CaseFileController::class, 'destroy'])->name('case.files.destroy');
         Route::post('/reports/{report}/generate-link', [UserReportController::class, 'generateFileLink'])->name('reports.generate-link');
         Route::post('/reports/batch/{batchId}/generate-link', [UserReportController::class, 'generateBatchLink'])->name('reports.batch.generate-link');
     });
@@ -281,6 +288,16 @@ Route::get('/storage/{path}', function (string $path) {
     }
 
     $mime = File::mimeType($fullPath) ?: 'application/octet-stream';
+
+    // Look up the report to get its original name and intended mime type
+    $report = \App\Models\Report::where('file_path', $normalized)->first();
+
+    if ($report && $report->original_name) {
+        return response()->download($fullPath, $report->original_name, [
+            'Content-Type' => $report->mime_type ?: $mime,
+            'Cache-Control' => 'public, max-age=86400',
+        ]);
+    }
 
     return response()->file($fullPath, [
         'Content-Type' => $mime,

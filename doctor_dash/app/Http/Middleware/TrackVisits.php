@@ -20,7 +20,7 @@ class TrackVisits
             $isAuthStatus = $request->is('auth/status');
             $isStaticAsset = (bool) preg_match('/\.(js|css|png|jpe?g|gif|webp|svg|ico|mp4|webm|ogg|mp3|wav|pdf|txt|json)$/i', $path);
 
-            if (!$isAdminPath && !$isAuthStatus && !$isStaticAsset) {
+            if (auth()->check() && !$isAdminPath && !$isAuthStatus && !$isStaticAsset) {
                 Visit::create([
                     'user_id' => optional($request->user())->id,
                     'ip_address' => $request->ip(),

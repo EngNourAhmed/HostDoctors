@@ -57,6 +57,7 @@ class ReportStatusUpdated extends Notification
 
         return [
             'report_id' => $this->report->id,
+            'batch_id' => $this->report->batch_id,
             'title' => 'Case Status Updated',
             'message' => $message,
             'old_status' => $this->oldStatus,
@@ -64,7 +65,7 @@ class ReportStatusUpdated extends Notification
             'updated_by_id' => $this->updatedBy ? $this->updatedBy->id : null,
             'updated_by_name' => $updaterName,
             'updated_by_role' => $updaterRole,
-            'url' => route('admin.cases.index'), // Admin can see it too
+            'url' => $notifiable->role === 'user' ? route('user.reports.show', $this->report->batch_id) : route('admin.cases.index'),
             'type' => 'status_update',
         ];
     }

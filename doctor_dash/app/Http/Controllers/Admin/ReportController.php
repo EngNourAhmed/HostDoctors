@@ -363,13 +363,12 @@ class ReportController extends Controller
 
         return response()->file(storage_path('app/public/' . $report->file_path), [
             'Content-Type' => $report->mime_type ?: 'application/octet-stream',
-            'Content-Disposition' => 'inline; filename="' . $report->original_name . '"',
-        ]);
+        ])->setContentDisposition('inline', $report->original_name);
     }
 
     public function batch($batch_id)
     {
-        $reports = Report::where('batch_id', $batch_id)->with('user')->orderByDesc('created_at')->get();
+        $reports = Report::where('batch_id', $batch_id)->with(['user', 'caseNotes.user'])->orderByDesc('created_at')->get();
 
         if ($reports->isEmpty()) {
             abort(404);

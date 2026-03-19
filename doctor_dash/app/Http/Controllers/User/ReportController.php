@@ -71,61 +71,215 @@ class ReportController extends Controller
         $user = $request->user();
 
         $data = $request->validate([
-            'title' => ['required', 'string', 'max:255'],
+            // 1. Doctor Information
+            'doctor_name' => ['nullable', 'string', 'max:255'],
+            'doctor_first_name' => ['nullable', 'string', 'max:100'],
+            'doctor_last_name' => ['nullable', 'string', 'max:100'],
+            'doctor_email' => ['nullable', 'email', 'max:255'],
+            'doctor_email_full_arch' => ['nullable', 'email', 'max:255'],
+            'doctor_phone' => ['nullable', 'string', 'max:50'],
+            'doctor_phone_full_arch' => ['nullable', 'string', 'max:50'],
+            'clinic_name' => ['nullable', 'string', 'max:255'],
+            'clinic_address' => ['nullable', 'string'],
+            'address_street' => ['nullable', 'string'],
+            'address_city' => ['nullable', 'string'],
+            'address_state' => ['nullable', 'string'],
+            'address_zip' => ['nullable', 'string'],
+            'address_country' => ['nullable', 'string'],
+            // 2. Patient Information
+            'patient_name' => ['nullable', 'string', 'max:255'],
+            'patient_first_name' => ['nullable', 'string', 'max:100'],
+            'patient_last_name' => ['nullable', 'string', 'max:100'],
+            'patient_age' => ['nullable', 'integer'],
+            'patient_gender' => ['nullable', 'string', 'max:50'],
+            'case_date' => ['nullable', 'date'],
+            'surgery_date' => ['nullable', 'date'],
+            // 3. Case Overview
+            'arch_to_treat' => ['nullable', 'string'],
+            'arch_type' => ['nullable', 'string'],
+            'opposing_arch_condition' => ['nullable', 'string'],
+            'current_condition' => ['nullable', 'string'],
+            'implants_planned' => ['nullable', 'integer'],
+            'implants_count' => ['nullable', 'integer'],
+            'guide_type' => ['nullable', 'string'],
+            'case_type' => ['nullable', 'string'],
+            'package' => ['nullable', 'string'],
+            'package_full_arch' => ['nullable', 'string'],
+            'immediate_loading' => ['nullable', 'string'],
+            'final_prosthesis' => ['nullable', 'string'],
+            'provisional_required' => ['nullable', 'string'],
+            'shade' => ['nullable', 'string', 'max:50'],
+            'services' => ['nullable', 'array'],
+            'services.*' => ['string'],
+            'services_other' => ['nullable', 'string'],
             'description' => ['nullable', 'string'],
-            'files' => ['nullable', 'array'],
-            'files.*' => ['file'], // Removed max size limit
+            'description_full_arch' => ['nullable', 'string'],
+            // 4. Implant System
+            'implant_brand' => ['nullable', 'string'],
+            'implant_brand_full_arch' => ['nullable', 'string'],
+            'implant_brand_other' => ['nullable', 'string'],
+            'implant_system' => ['nullable', 'string'],
+            'implant_sizes' => ['nullable', 'string'],
+            'multi_unit_abutments' => ['nullable', 'string'],
+            'fixation_pins' => ['nullable', 'string'],
+            'bone_reduction' => ['nullable', 'string'],
+            // 5-7. Files & Records
             'temp_paths' => ['nullable', 'array'],
             'temp_paths.*' => ['string'],
+            'categories' => ['nullable', 'array'],
+            'additional_records' => ['nullable', 'string'],
+            // 8. Prescription
+            'lab_instructions' => ['nullable', 'string'],
+            'prosthesis_design' => ['nullable', 'string'],
+            'final_shade' => ['nullable', 'string'],
+            'due_date' => ['nullable', 'date'],
+            'doctor_signature' => ['nullable', 'string'],
+            'signature' => ['nullable', 'string'],
+            // 9. Delivery
+            'preferred_delivery_date' => ['nullable', 'date'],
+            'shipping_address' => ['nullable', 'string'],
+            'logistics_comments' => ['nullable', 'string'],
         ]);
 
+        // Map Full Arch / Single Implant UI names to internal names
+        $doctorName = $data['doctor_name'] ?? trim(($data['doctor_first_name'] ?? '') . ' ' . ($data['doctor_last_name'] ?? ''));
+        $doctorEmail = $data['doctor_email'] ?? $data['doctor_email_full_arch'] ?? $user->email;
+        $doctorPhone = $data['doctor_phone'] ?? $data['doctor_phone_full_arch'] ?? $user->phone;
+        
+        $clinicAddress = $data['clinic_address'] ?? trim(
+            ($data['address_street'] ?? '') . ', ' . 
+            ($data['address_city'] ?? '') . ' ' . 
+            ($data['address_state'] ?? '') . ' ' . 
+            ($data['address_zip'] ?? '') . ' ' . 
+            ($data['address_country'] ?? '')
+        );
+
+        $patientName = $data['patient_name'] ?? trim(($data['patient_first_name'] ?? '') . ' ' . ($data['patient_last_name'] ?? ''));
+        $archToTreat = $data['arch_to_treat'] ?? $data['arch_type'] ?? 'Both';
+        $implantsPlanned = $data['implants_planned'] ?? $data['implants_count'] ?? 0;
+        $guideType = $data['guide_type'] ?? $data['case_type'] ?? $data['package_full_arch'] ?? $data['package'] ?? 'Standard';
+        $description = $data['description'] ?? $data['description_full_arch'] ?? '';
+        $implantBrand = $data['implant_brand'] ?? $data['implant_brand_full_arch'] ?? 'Not Specified';
+        $signature = $data['doctor_signature'] ?? $data['signature'] ?? $user->name;
+
         $batchId = (string) \Illuminate\Support\Str::uuid();
-        $processedTempFiles = false;
+        
+        $implantBrandFinal = ($implantBrand === 'Other') 
+            ? ($data['implant_brand_other'] ?? 'Other') 
+            : $implantBrand;
+
+        $clinicalData = [
+            'doctor_info' => [
+                'name' => $doctorName,
+                'email' => $doctorEmail,
+                'phone' => $doctorPhone,
+                'clinic_name' => $data['clinic_name'] ?? 'Not Specified',
+                'clinic_address' => $clinicAddress,
+            ],
+            'patient_info' => [
+                'name' => $patientName,
+                'age' => $data['patient_age'] ?? 'N/A',
+                'gender' => $data['patient_gender'] ?? 'N/A',
+                'case_date' => $data['case_date'] ?? now()->toDateString(),
+                'surgery_date' => $data['surgery_date'] ?? now()->toDateString(),
+            ],
+            'case_overview' => [
+                'arch' => $archToTreat,
+                'opposing_arch' => $data['opposing_arch_condition'] ?? 'N/A',
+                'condition' => $data['current_condition'] ?? 'N/A',
+                'implants_planned' => $implantsPlanned,
+                'guide_type' => $guideType,
+                'immediate_loading' => $data['immediate_loading'] ?? 'N/A',
+                'final_prosthesis' => $data['final_prosthesis'] ?? 'N/A',
+                'provisional_required' => $data['provisional_required'] ?? 'N/A',
+                'shade' => $data['shade'] ?? 'N/A',
+                'services' => $data['services'] ?? [$guideType],
+                'services_other' => $data['services_other'] ?? null,
+            ],
+            'implant_system' => [
+                'brand' => $implantBrandFinal,
+                'system' => $data['implant_system'] ?? 'N/A',
+                'sizes' => $data['implant_sizes'] ?? 'N/A',
+                'mua' => $data['multi_unit_abutments'] ?? 'N/A',
+                'pins' => $data['fixation_pins'] ?? 'N/A',
+                'bone_reduction' => $data['bone_reduction'] ?? 'N/A',
+            ],
+            'records' => [
+                'additional' => $data['additional_records'] ?? null,
+            ],
+            'prescription' => [
+                'lab_instructions' => $data['lab_instructions'] ?? $description,
+                'prosthesis_design' => $data['prosthesis_design'] ?? null,
+                'shade' => $data['final_shade'] ?? null,
+                'due_date' => $data['due_date'] ?? now()->addDays(7)->toDateString(),
+                'signature' => $signature,
+            ],
+            'logistics' => [
+                'preferred_date' => $data['preferred_delivery_date'] ?? now()->addDays(10)->toDateString(),
+                'shipping_address' => $data['shipping_address'] ?? $clinicAddress,
+                'comments' => $data['logistics_comments'] ?? null,
+            ]
+        ];
+
+        $reportAttributes = [
+            'user_id' => $user->id,
+            'batch_id' => $batchId,
+            'title' => $patientName, // Use patient name as title
+            'description' => $description,
+            'arch_type' => $archToTreat,
+            'implants_count' => $implantsPlanned,
+            'implant_brand' => $implantBrandFinal,
+            'case_type' => $guideType,
+            'clinical_data' => $clinicalData,
+            'status' => 'Pending',
+        ];
 
         // Handle temporary uploads
+        $processedTempFiles = false;
         if (!empty($data['temp_paths'])) {
             foreach ($data['temp_paths'] as $tempPath) {
                 if (Storage::disk('public')->exists($tempPath)) {
+                    $suffix = str_replace('.', '_', $tempPath);
+                    $category = $request->input('categories.' . $suffix, 'general');
+                    
                     $filename = basename($tempPath);
                     $newPath = 'reports/' . $filename;
                     Storage::disk('public')->move($tempPath, $newPath);
 
-                    Report::create([
-                        'user_id' => $user->id,
-                        'batch_id' => $batchId,
-                        'title' => $data['title'],
-                        'description' => $data['description'] ?? null,
+                    $fileClinicalData = $clinicalData;
+                    $fileClinicalData['file_category'] = $category;
+
+                    Report::create(array_merge($reportAttributes, [
                         'file_path' => $newPath,
-                        'original_name' => $request->input('original_names.' . str_replace('.', '_', $tempPath), $filename),
-                        'mime_type' => $request->input('mime_types.' . str_replace('.', '_', $tempPath), 'application/octet-stream'),
-                        'size' => $request->input('sizes.' . str_replace('.', '_', $tempPath), 0),
-                        'status' => 'Pending',
-                    ]);
+                        'original_name' => $request->input('original_names.' . $suffix, $filename),
+                        'mime_type' => $request->input('mime_types.' . $suffix, 'application/octet-stream'),
+                        'size' => $request->input('sizes.' . $suffix, 0),
+                        'clinical_data' => $fileClinicalData,
+                    ]));
                     $processedTempFiles = true;
                 }
             }
         }
 
         // Handle direct uploads (fallback)
-        // Only process these if no temp_paths were processed to avoid duplication
         if (!$processedTempFiles && !empty($data['files'])) {
             foreach ($data['files'] as $file) {
                 $extension = $file->getClientOriginalExtension() ?: pathinfo($file->getClientOriginalName(), PATHINFO_EXTENSION);
                 $filename = \Illuminate\Support\Str::random(40) . ($extension ? '.' . $extension : '');
                 $path = $file->storeAs('reports', $filename, 'public');
 
-                Report::create([
-                    'user_id' => $user->id,
-                    'batch_id' => $batchId,
-                    'title' => $data['title'],
-                    'description' => $data['description'] ?? null,
+                Report::create(array_merge($reportAttributes, [
                     'file_path' => $path,
                     'original_name' => $file->getClientOriginalName(),
                     'mime_type' => $file->getClientMimeType(),
                     'size' => $file->getSize(),
-                    'status' => 'Pending',
-                ]);
+                ]));
             }
+        }
+
+        // Special case: If NO files uploaded but form submitted (should handle appropriately)
+        if (!$processedTempFiles && empty($data['files'])) {
+             Report::create($reportAttributes);
         }
 
         // Notify all staff about the new case
@@ -166,6 +320,7 @@ class ReportController extends Controller
 
         // Now fetch ALL reports in this batch (including replies from admins)
         $allReports = Report::where('batch_id', $batchId)
+            ->with(['caseNotes.user'])
             ->orderByDesc('created_at')
             ->get();
 
@@ -222,36 +377,195 @@ class ReportController extends Controller
         abort_unless($report->user_id === $user->id, 404);
 
         $data = $request->validate([
-            'title' => ['required', 'string', 'max:255'],
+            // 1. Doctor Information
+            'doctor_name' => ['nullable', 'string', 'max:255'],
+            'doctor_first_name' => ['nullable', 'string', 'max:100'],
+            'doctor_last_name' => ['nullable', 'string', 'max:100'],
+            'doctor_email' => ['nullable', 'email', 'max:255'],
+            'doctor_email_full_arch' => ['nullable', 'email', 'max:255'],
+            'doctor_phone' => ['nullable', 'string', 'max:50'],
+            'doctor_phone_full_arch' => ['nullable', 'string', 'max:50'],
+            'clinic_name' => ['nullable', 'string', 'max:255'],
+            'clinic_address' => ['nullable', 'string'],
+            'address_street' => ['nullable', 'string'],
+            'address_city' => ['nullable', 'string'],
+            'address_state' => ['nullable', 'string'],
+            'address_zip' => ['nullable', 'string'],
+            'address_country' => ['nullable', 'string'],
+            // 2. Patient Information
+            'patient_name' => ['nullable', 'string', 'max:255'],
+            'patient_first_name' => ['nullable', 'string', 'max:100'],
+            'patient_last_name' => ['nullable', 'string', 'max:100'],
+            'patient_age' => ['nullable', 'integer'],
+            'patient_gender' => ['nullable', 'string', 'max:50'],
+            'case_date' => ['nullable', 'date'],
+            'surgery_date' => ['nullable', 'date'],
+            // 3. Case Overview
+            'arch_to_treat' => ['nullable', 'string'],
+            'arch_type' => ['nullable', 'string'],
+            'opposing_arch_condition' => ['nullable', 'string'],
+            'current_condition' => ['nullable', 'string'],
+            'implants_planned' => ['nullable', 'integer'],
+            'implants_count' => ['nullable', 'integer'],
+            'guide_type' => ['nullable', 'string'],
+            'case_type' => ['nullable', 'string'],
+            'package' => ['nullable', 'string'],
+            'package_full_arch' => ['nullable', 'string'],
+            'immediate_loading' => ['nullable', 'string'],
+            'final_prosthesis' => ['nullable', 'string'],
+            'provisional_required' => ['nullable', 'string'],
+            'shade' => ['nullable', 'string', 'max:50'],
+            'services' => ['nullable', 'array'],
+            'services.*' => ['string'],
+            'services_other' => ['nullable', 'string'],
             'description' => ['nullable', 'string'],
-            'file' => ['nullable', 'file'], // Removed max size limit
+            'description_full_arch' => ['nullable', 'string'],
+            // 4. Implant System
+            'implant_brand' => ['nullable', 'string'],
+            'implant_brand_full_arch' => ['nullable', 'string'],
+            'implant_brand_other' => ['nullable', 'string'],
+            'implant_system' => ['nullable', 'string'],
+            'implant_sizes' => ['nullable', 'string'],
+            'multi_unit_abutments' => ['nullable', 'string'],
+            'fixation_pins' => ['nullable', 'string'],
+            'bone_reduction' => ['nullable', 'string'],
+            // 5-7. Files & Records
+            'temp_paths' => ['nullable', 'array'],
+            'temp_paths.*' => ['string'],
+            'categories' => ['nullable', 'array'],
+            'additional_records' => ['nullable', 'string'],
+            // 8. Prescription
+            'lab_instructions' => ['nullable', 'string'],
+            'prosthesis_design' => ['nullable', 'string'],
+            'final_shade' => ['nullable', 'string'],
+            'due_date' => ['nullable', 'date'],
+            'doctor_signature' => ['nullable', 'string'],
+            'signature' => ['nullable', 'string'],
+            // 9. Delivery
+            'preferred_delivery_date' => ['nullable', 'date'],
+            'shipping_address' => ['nullable', 'string'],
+            'logistics_comments' => ['nullable', 'string'],
         ]);
 
-        if ($request->hasFile('file')) {
-            if ($report->file_path) {
-                Storage::disk('public')->delete($report->file_path);
-            }
+        $doctorName = $data['doctor_name'] ?? trim(($data['doctor_first_name'] ?? '') . ' ' . ($data['doctor_last_name'] ?? ''));
+        $doctorEmail = $data['doctor_email'] ?? $data['doctor_email_full_arch'] ?? $user->email;
+        $doctorPhone = $data['doctor_phone'] ?? $data['doctor_phone_full_arch'] ?? $user->phone;
+        
+        $clinicAddress = $data['clinic_address'] ?? trim(
+            ($data['address_street'] ?? '') . ', ' . 
+            ($data['address_city'] ?? '') . ' ' . 
+            ($data['address_state'] ?? '') . ' ' . 
+            ($data['address_zip'] ?? '') . ' ' . 
+            ($data['address_country'] ?? '')
+        );
 
-            $file = $data['file'];
-            $extension = $file->getClientOriginalExtension() ?: pathinfo($file->getClientOriginalName(), PATHINFO_EXTENSION);
-            $filename = \Illuminate\Support\Str::random(40) . ($extension ? '.' . $extension : '');
-            $path = $file->storeAs('reports', $filename, 'public');
+        $patientName = $data['patient_name'] ?? trim(($data['patient_first_name'] ?? '') . ' ' . ($data['patient_last_name'] ?? ''));
+        $archToTreat = $data['arch_to_treat'] ?? $data['arch_type'] ?? 'Both';
+        $implantsPlanned = $data['implants_planned'] ?? $data['implants_count'] ?? 0;
+        $guideType = $data['guide_type'] ?? $data['case_type'] ?? $data['package_full_arch'] ?? $data['package'] ?? 'Standard';
+        $description = $data['description'] ?? $data['description_full_arch'] ?? '';
+        $implantBrand = $data['implant_brand'] ?? $data['implant_brand_full_arch'] ?? 'Not Specified';
+        $signature = $data['doctor_signature'] ?? $data['signature'] ?? $user->name;
 
-            $report->file_path = $path;
-            $report->original_name = $file->getClientOriginalName();
-            $report->mime_type = $file->getClientMimeType();
-            $report->size = $file->getSize();
-        }
+        $implantBrandFinal = ($implantBrand === 'Other') 
+            ? ($data['implant_brand_other'] ?? 'Other') 
+            : $implantBrand;
+
+        $clinicalData = [
+            'doctor_info' => [
+                'name' => $doctorName,
+                'email' => $doctorEmail,
+                'phone' => $doctorPhone,
+                'clinic_name' => $data['clinic_name'] ?? 'Not Specified',
+                'clinic_address' => $clinicAddress,
+            ],
+            'patient_info' => [
+                'name' => $patientName,
+                'age' => $data['patient_age'] ?? 'N/A',
+                'gender' => $data['patient_gender'] ?? 'N/A',
+                'case_date' => $data['case_date'] ?? now()->toDateString(),
+                'surgery_date' => $data['surgery_date'] ?? now()->toDateString(),
+            ],
+            'case_overview' => [
+                'arch' => $archToTreat,
+                'opposing_arch' => $data['opposing_arch_condition'] ?? 'N/A',
+                'condition' => $data['current_condition'] ?? 'N/A',
+                'implants_planned' => $implantsPlanned,
+                'guide_type' => $guideType,
+                'immediate_loading' => $data['immediate_loading'] ?? 'N/A',
+                'final_prosthesis' => $data['final_prosthesis'] ?? 'N/A',
+                'provisional_required' => $data['provisional_required'] ?? 'N/A',
+                'shade' => $data['shade'] ?? 'N/A',
+                'services' => $data['services'] ?? [$guideType],
+                'services_other' => $data['services_other'] ?? null,
+            ],
+            'implant_system' => [
+                'brand' => $implantBrandFinal,
+                'system' => $data['implant_system'] ?? 'N/A',
+                'sizes' => $data['implant_sizes'] ?? 'N/A',
+                'mua' => $data['multi_unit_abutments'] ?? 'N/A',
+                'pins' => $data['fixation_pins'] ?? 'N/A',
+                'bone_reduction' => $data['bone_reduction'] ?? 'N/A',
+            ],
+            'records' => [
+                'additional' => $data['additional_records'] ?? null,
+            ],
+            'prescription' => [
+                'lab_instructions' => $data['lab_instructions'] ?? $description,
+                'prosthesis_design' => $data['prosthesis_design'] ?? null,
+                'shade' => $data['final_shade'] ?? null,
+                'due_date' => $data['due_date'] ?? now()->addDays(7)->toDateString(),
+                'signature' => $signature,
+            ],
+            'logistics' => [
+                'preferred_date' => $data['preferred_delivery_date'] ?? now()->addDays(10)->toDateString(),
+                'shipping_address' => $data['shipping_address'] ?? $clinicAddress,
+                'comments' => $data['logistics_comments'] ?? null,
+            ]
+        ];
+
+        $reportAttributes = [
+            'title' => $patientName,
+            'description' => $description,
+            'arch_type' => $archToTreat,
+            'implants_count' => $implantsPlanned,
+            'implant_brand' => $implantBrandFinal,
+            'case_type' => $guideType,
+            'clinical_data' => $clinicalData,
+        ];
 
         if ($report->batch_id) {
-            Report::where('batch_id', $report->batch_id)->update([
-                'title' => $data['title'],
-                'description' => $data['description'] ?? null,
-            ]);
+            Report::where('batch_id', $report->batch_id)->update($reportAttributes);
         } else {
-            $report->title = $data['title'];
-            $report->description = $data['description'] ?? null;
-            $report->save();
+            $report->update($reportAttributes);
+        }
+
+        // Handle temporary uploads
+        if (!empty($data['temp_paths'])) {
+            foreach ($data['temp_paths'] as $tempPath) {
+                if (Storage::disk('public')->exists($tempPath)) {
+                    $suffix = str_replace('.', '_', $tempPath);
+                    $category = $request->input('categories.' . $suffix, 'general');
+                    
+                    $filename = basename($tempPath);
+                    $newPath = 'reports/' . $filename;
+                    Storage::disk('public')->move($tempPath, $newPath);
+
+                    $fileClinicalData = $clinicalData;
+                    $fileClinicalData['file_category'] = $category;
+
+                    Report::create(array_merge($reportAttributes, [
+                        'user_id' => $user->id,
+                        'batch_id' => $report->batch_id ?? (string) \Illuminate\Support\Str::uuid(),
+                        'status' => $report->status,
+                        'file_path' => $newPath,
+                        'original_name' => $request->input('original_names.' . $suffix, $filename),
+                        'mime_type' => $request->input('mime_types.' . $suffix, 'application/octet-stream'),
+                        'size' => $request->input('sizes.' . $suffix, 0),
+                        'clinical_data' => $fileClinicalData,
+                    ]));
+                }
+            }
         }
 
         // Notify all staff about the case update
@@ -347,8 +661,7 @@ class ReportController extends Controller
 
         return response()->file(Storage::disk('public')->path($report->file_path), [
             'Content-Type' => $report->mime_type ?: 'application/octet-stream',
-            'Content-Disposition' => 'inline; filename="' . $report->original_name . '"',
-        ]);
+        ])->setContentDisposition('inline', $report->original_name);
     }
 
     public function uploadAdditional(Request $request, $batchId)
@@ -504,7 +817,7 @@ class ReportController extends Controller
         return response()->file(Storage::disk('public')->path($report->file_path), [
             'Content-Type' => $report->mime_type ?: 'application/octet-stream',
             'Cache-Control' => 'public, max-age=86400',
-        ]);
+        ])->setContentDisposition('inline', $report->original_name);
     }
 
     public function sharedBatch(Request $request, $batchId)

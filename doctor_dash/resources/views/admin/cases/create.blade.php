@@ -222,17 +222,7 @@
                         <div id="full-arch-fields" class="space-y-5 {{ request('type') === 'full_arch' ? '' : 'hidden' }}">
                             <!-- Arch Type -->
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-                                <div class="space-y-3">
-                                    <label class="block text-[10px] font-black uppercase tracking-widest text-emerald-400">Surgical Arch <span class="text-red-500">*</span></label>
-                                    <div class="flex flex-col gap-2">
-                                        @foreach(['mandible' => 'Mandible', 'maxilla' => 'Maxilla', 'both' => 'Both (Double Arches)'] as $val => $label)
-                                            <label class="relative flex items-center p-3 rounded-xl border border-white/5 bg-white/5 cursor-pointer hover:bg-white/10 transition-all">
-                                                <input type="radio" name="arch_type" value="{{ $val }}" class="w-4 h-4 text-emerald-500 bg-transparent border-2 border-white/20 focus:ring-emerald-500 focus:ring-2 mr-3">
-                                                <span class="text-xs font-bold text-white/70">{{ $label }}</span>
-                                            </label>
-                                        @endforeach
-                                    </div>
-                                </div>
+                             
 
                                 <!-- Package Selection -->
                                 <div class="space-y-3">

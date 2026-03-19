@@ -75,7 +75,7 @@
         .card {
             display: table-cell;
             vertical-align: top;
-            padding: 10px 12px;
+            padding: 12px 14px;
             border-radius: 14px;
             border: 1px solid rgba(255, 255, 255, 0.12);
             background: #111111;
@@ -84,7 +84,7 @@
         .card-title {
             text-transform: uppercase;
             letter-spacing: 0.18em;
-            font-size: 9px;
+            font-size: 8px;
             color: #9ca3af;
         }
 
@@ -96,15 +96,20 @@
 
         .card-sub {
             font-size: 9px;
-            color: #9ca3af;
+            color: #6b7280;
             margin-top: 2px;
         }
 
         .section-title {
-            font-size: 12px;
-            font-weight: 600;
-            margin-top: 14px;
-            margin-bottom: 4px;
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.14em;
+            margin-top: 24px;
+            margin-bottom: 8px;
+            color: #facc15;
+            border-bottom: 1px solid rgba(250, 204, 21, 0.25);
+            padding-bottom: 5px;
         }
 
         table {
@@ -204,16 +209,20 @@
                     <div class="card-sub">BoneHard assistants</div>
                 </div>
             </div>
+        </div>
+
+        <div class="grid" style="margin-top: 10px;">
             <div class="grid-row">
-                <div class="card">
-                    <div class="card-title">Pending Cases</div>
-                    <div class="card-main" style="color: #fbbf24;">{{ $pendingCasesCount }}</div>
-                    <div class="card-sub">Awaiting review/action</div>
-                </div>
-                <div class="card">
-                    <div class="card-title">Other Cases</div>
-                    <div class="card-main" style="color: #34d399;">{{ $otherCasesCount }}</div>
-                    <div class="card-sub">In progress or completed</div>
+                <div class="card" style="width: 60%;">
+                    <div class="card-title">Case distribution summary</div>
+                    <div class="card-main" style="font-size: 14px; margin-top: 10px; color: #facc15;">
+                        @foreach($caseStats->take(3) as $stat)
+                            <div style="margin-bottom: 4px; display: inline-block; margin-right: 15px;">
+                                <span class="muted" style="font-size: 8px;">{{ $stat->status }}:</span> 
+                                <span>{{ $stat->count }}</span>
+                            </div>
+                        @endforeach
+                    </div>
                 </div>
                 <div class="card">
                     <div class="card-title">Visits (Today)</div>
@@ -222,6 +231,24 @@
                 </div>
             </div>
         </div>
+
+        <div class="section-title">Detailed case status analytics</div>
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 70%;">Status</th>
+                    <th style="text-align: right;">Total Count</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach ($caseStats as $stat)
+                    <tr>
+                        <td>{{ $stat->status }}</td>
+                        <td style="text-align: right;">{{ $stat->count }}</td>
+                    </tr>
+                @endforeach
+            </tbody>
+        </table>
 
         <div class="section-title">Traffic analytics</div>
         <table>
@@ -285,17 +312,15 @@
         <table>
             <thead>
                 <tr>
-                    <th>Page</th>
-                    <th style="width: 25%;">Visits</th>
-                    <th style="width: 30%;">Path</th>
+                    <th style="width: 70%;">Page / Destination</th>
+                    <th style="text-align: right;">Visits</th>
                 </tr>
             </thead>
             <tbody>
                 @foreach ($topPaths as $index => $row)
                     <tr>
                         <td>{{ $topPathLabels[$index] ?? '/' . $row->path }}</td>
-                        <td>{{ $row->count }}</td>
-                        <td>{{ $row->path }}</td>
+                        <td style="text-align: right;">{{ $row->count }}</td>
                     </tr>
                 @endforeach
             </tbody>

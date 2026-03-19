@@ -145,10 +145,6 @@
                     <td class="value">{{ $title }}</td>
                 </tr>
                 <tr>
-                    <td class="label">Case Type</td>
-                    <td class="value">{{ strtoupper(str_replace('_', ' ', $case_type)) }}</td>
-                </tr>
-                <tr>
                     <td class="label">Report Created</td>
                     <td class="value">{{ date('Y-m-d \a\t h:i A') }}</td>
                 </tr>
@@ -185,12 +181,6 @@
                 <span class="card-title">Clinical Specifications</span>
             </div>
             <table class="grid">
-                @if(!empty($arch_type))
-                <tr>
-                    <td class="label">Surgical Arch</td>
-                    <td class="value">{{ strtoupper($arch_type) }}</td>
-                </tr>
-                @endif
                 @if(!empty($implants_count))
                 <tr>
                     <td class="label">Planned Implants</td>

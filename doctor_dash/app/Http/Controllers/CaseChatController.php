@@ -159,17 +159,25 @@ class CaseChatController extends Controller
      */
     protected function notifyParticipants($conversation, $sender, $batchId)
     {
+        \Illuminate\Support\Facades\Log::info('notifyParticipants called', ['sender_id' => $sender->id, 'batch_id' => $batchId]);
+        
         $report = Report::where('batch_id', $batchId)->first();
         
-        if (!$report) return;
+        if (!$report) {
+            \Illuminate\Support\Facades\Log::warning('notifyParticipants: No report found for batch_id', ['batch_id' => $batchId]);
+            return;
+        }
         
         // Notify case owner if sender is staff
         if (in_array($sender->role, ['admin', 'assistant', 'admin_assistant'])) {
+            \Illuminate\Support\Facades\Log::info('Notifying user of staff message', ['user_id' => $report->user_id]);
             $report->user->notify(new CaseActivity($report, 'message_received'));
         } else {
             // Notify all staff if sender is client
             $staff = User::whereIn('role', ['admin', 'assistant', 'admin_assistant'])->get();
+            \Illuminate\Support\Facades\Log::info('Notifying staff of client message', ['staff_count' => $staff->count()]);
             foreach ($staff as $person) {
+                \Illuminate\Support\Facades\Log::info('Notifying staff member', ['staff_id' => $person->id]);
                 $person->notify(new CaseActivity($report, 'message_received'));
             }
         }

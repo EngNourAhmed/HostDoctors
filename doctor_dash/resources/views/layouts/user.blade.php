@@ -310,32 +310,43 @@
                 <div class="flex items-center gap-4 text-sm md:text-base">
                     @auth
                         @php
-                            $__unreadUserMessages = 0;
                             $__currentUser = auth()->user();
-                            $__userConversations = \App\Models\Conversation::whereIn('type', ['admin_user', 'user_doctors_group'])
+                            
+                            // 1. Filter Chats for "Client Chat" only (Case Chats)
+                            $__caseConversations = \App\Models\Conversation::where('type', 'case_chat')
+                                ->whereHas('messages') // Only show active chats
                                 ->where(function ($q) use ($__currentUser) {
-                                    $q->where('admin_id', $__currentUser->id)
-                                        ->orWhere('participant_id', $__currentUser->id);
+                                    // Identify cases belonging to the user
+                                    $batchIds = \App\Models\Report::where('user_id', $__currentUser->id)
+                                        ->pluck('batch_id')
+                                        ->unique();
+                                    $q->whereIn('batch_id', $batchIds);
                                 })
                                 ->with(['messages' => function ($q) {
                                     $q->latest()->limit(1);
                                 }])
                                 ->get();
 
-                            $__unreadUserMessages = $__userConversations
+                            $__unreadUserMessages = $__caseConversations
                                 ->filter(function ($conversation) use ($__currentUser) {
                                     $last = $conversation->messages->first();
                                     return $last && $last->sender_id !== $__currentUser->id;
                                 })
                                 ->count();
                                 
-                            $__unreadNotifications = auth()->user()->unreadNotifications->count();
+                            // 2. Filter Notifications for "Case Status Changing" only
+                            $__unreadNotificationsCount = $__currentUser->unreadNotifications()
+                                ->where(function($q) {
+                                    $q->where('data->type', 'status_updated')
+                                      ->orWhere('data->type', 'case_status_change');
+                                })
+                                ->count();
                         @endphp
 
                          <!-- Messages Button -->
-                        <button id="bh-messages-btn-header" class="relative group p-3.5 hover:bg-white/10 transition-all duration-300">
+                        <button id="bh-messages-btn-header" class="relative h-10 w-10 rounded-full bg-slate-700 hover:bg-slate-600 flex items-center justify-center transition-all duration-200">
                             <div class="relative">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-slate-400 group-hover:text-white transition-colors">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-white">
                                     <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
                                 </svg>
                                 @if($__unreadUserMessages > 0)
@@ -347,15 +358,15 @@
                         </button>
 
                         <!-- Notifications Button -->
-                        <button id="bh-notifications-btn-header" class="relative group p-3.5 hover:bg-white/10 transition-all duration-300">
+                        <button id="bh-notifications-btn-header" class="relative h-10 w-10 rounded-full bg-slate-700 hover:bg-slate-600 flex items-center justify-center transition-all duration-200">
                             <div class="relative">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-slate-400 group-hover:text-white transition-colors">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-white">
                                     <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/>
                                     <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>
                                 </svg>
-                                @if($__unreadNotifications > 0)
+                                @if($__unreadNotificationsCount > 0)
                                     <span class="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
-                                        {{ $__unreadNotifications }}
+                                        {{ $__unreadNotificationsCount }}
                                     </span>
                                 @endif
                             </div>
@@ -492,7 +503,8 @@
                         document.querySelectorAll('[data-dropdown-arrow]').forEach(a => a.classList.remove('rotate-180'));
                     }
                 });
-            }
+
+    }
 
             document.addEventListener('DOMContentLoaded', () => {
                 initUserSidebar();
@@ -584,109 +596,51 @@
     </script>
     <!-- Fixed Floating Buttons -->
     @auth
-        <!-- Messages Dropdown -->
-        @php
-            $__unreadUserMessages = 0;
-            $__currentUser = auth()->user();
-            $__userConversations = \App\Models\Conversation::whereIn('type', ['admin_user', 'user_doctors_group'])
-                ->where(function ($q) use ($__currentUser) {
-                    $q->where('admin_id', $__currentUser->id)
-                        ->orWhere('participant_id', $__currentUser->id);
-                })
-                ->with(['messages' => function ($q) {
-                    $q->latest()->limit(1);
-                }])
-                ->get();
-
-            $__unreadUserMessages = $__userConversations
-                ->filter(function ($conversation) use ($__currentUser) {
-                    $last = $conversation->messages->first();
-                    return $last && $last->sender_id !== $__currentUser->id;
-                })
-                ->count();
-                
-            $__allDoctors = \App\Models\User::whereIn('role', ['admin', 'assistant', 'admin_assistant'])
-                ->orderBy('name')
-                ->get();
-        @endphp
-
-        <!-- Messages Dropdown -->
+                <!-- Case Chat Notifications Dropdown -->
         <div id="bh-messages-dropdown" class="fixed top-16 right-32 z-[60] w-[400px] max-h-[600px] bg-[#0c0c0c] rounded-2xl border border-white/10 shadow-2xl hidden flex-col overflow-hidden transform origin-top-right transition-all duration-200 scale-95 opacity-0">
             <div class="p-5 border-b border-white/10">
                 <div class="flex items-center justify-between mb-4">
-                    <h3 class="text-2xl font-bold text-white">Chats</h3>
-                    <button id="bh-new-chat-btn" class="h-10 w-10 rounded-full bg-[#FACC15] hover:bg-[#FACC15]/90 flex items-center justify-center transition-colors">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-black">
-                            <path d="M12 5v14M5 12h14"/>
-                        </svg>
-                    </button>
+                    <h3 class="text-2xl font-bold text-white">Case Messages</h3>
                 </div>
-                <input type="text" id="bh-search-chats" placeholder="Search conversations..." class="w-full px-4 py-2.5 bg-[#111111] border border-white/10 rounded-xl text-white placeholder-gray-500 text-sm focus:outline-none focus:border-[#FACC15]">
+                <input type="text" id="bh-search-chats" placeholder="Search messages..." class="w-full px-4 py-2.5 bg-[#111111] border border-white/10 rounded-xl text-white placeholder-gray-500 text-sm focus:outline-none focus:border-[#FACC15]">
             </div>
             
-            <!-- Existing Conversations -->
             <div id="bh-conversations-list" class="flex-1 overflow-y-auto">
-                @forelse($__userConversations as $conversation)
-                    @php
-                        $lastMessage = $conversation->messages->first();
-                        $isUnread = $lastMessage && $lastMessage->sender_id !== $__currentUser->id;
-                        $otherUser = $conversation->admin_id === $__currentUser->id 
-                            ? \App\Models\User::find($conversation->participant_id)
-                            : \App\Models\User::find($conversation->admin_id);
-                    @endphp
-                    <button onclick="openChatWindow({{ $otherUser->id ?? 0 }}, '{{ addslashes($otherUser->name ?? 'User') }}', '{{ $otherUser->role ?? 'doctor' }}')" class="flex items-center gap-3 p-3 hover:bg-white/5 transition-colors border-b border-white/5 {{ $isUnread ? 'bg-[#FACC15]/5' : '' }} w-full text-left">
-                        <div class="relative shrink-0">
-                            <div class="h-12 w-12 rounded-full bg-gradient-to-br from-[#FACC15] to-[#F59E0B] flex items-center justify-center text-black font-bold text-base">
-                                {{ substr($otherUser->name ?? 'D', 0, 1) }}
+                @php
+                    $__userChatNotifications = auth()->user()->notifications()
+                        ->where('data->type', 'case_message_received')
+                        ->orderByDesc('created_at')
+                        ->take(15)->get();
+                @endphp
+                @forelse($__userChatNotifications as $notification)
+                    <div class="flex items-start gap-3 p-4 hover:bg-white/5 transition-colors border-b border-white/5 {{ $notification->read_at ? '' : 'bg-[#FACC15]/5' }}">
+                        <div class="shrink-0">
+                            <div class="h-10 w-10 rounded-full bg-gradient-to-br from-[#FACC15] to-[#F59E0B] flex items-center justify-center text-black font-bold text-sm">
+                                {{ substr($notification->data['title'] ?? 'N', 0, 1) }}
                             </div>
-                            @if($isUnread)
-                                <div class="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-[#FACC15] border-2 border-[#0c0c0c]"></div>
-                            @endif
                         </div>
                         <div class="flex-1 min-w-0">
-                            <p class="text-sm font-semibold text-white truncate">{{ $otherUser->name ?? 'Doctor' }}</p>
-                            <p class="text-xs text-gray-400 truncate mt-0.5">
-                                <span class="{{ $isUnread ? 'font-semibold text-white' : '' }}">{{ $lastMessage->body ?? 'No messages yet' }}</span>
-                            </p>
-                        </div>
-                        <div class="text-right shrink-0">
-                            <p class="text-[10px] text-gray-500">{{ $lastMessage ? $lastMessage->created_at->diffForHumans(null, true) : '' }}</p>
-                            @if($isUnread)
-                                <div class="h-2 w-2 rounded-full bg-[#FACC15] mt-1 ml-auto"></div>
+                            <div class="flex items-center justify-between gap-2">
+                                <p class="text-xs font-bold text-white">{{ $notification->data['title'] ?? 'New Message' }}</p>
+                                <p class="text-[10px] text-gray-500">{{ $notification->created_at->diffForHumans() }}</p>
+                            </div>
+                            <p class="text-xs text-gray-300 mt-1 line-clamp-2 leading-relaxed">{{ $notification->data['message'] ?? '' }}</p>
+                            @if(isset($notification->data['batch_id']))
+                                <a href="{{ route('user.reports.show', $notification->data['batch_id']) }}?tab=chat" class="inline-flex items-center gap-1 mt-2 text-[10px] text-[#FACC15] hover:text-white transition-colors">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                                    </svg>
+                                    Go to Chat
+                                </a>
                             @endif
                         </div>
-                    </button>
-                @empty
-                    <div class="text-center text-gray-400 text-sm py-12">No conversations yet</div>
-                @endforelse
-            </div>
-            
-            <!-- New Chat User List (Hidden by default) -->
-            <div id="bh-new-chat-list" class="hidden flex-col h-full">
-                <div class="p-5 border-b border-white/10">
-                    <div class="flex items-center gap-3 mb-4">
-                        <button id="bh-back-to-chats" class="h-10 w-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-white">
-                                <path d="M19 12H5M12 19l-7-7 7-7"/>
-                            </svg>
-                        </button>
-                        <h3 class="text-xl font-bold text-white">New Chat</h3>
+                        @if(!$notification->read_at)
+                            <div class="h-1.5 w-1.5 rounded-full bg-[#FACC15] shrink-0 mt-1"></div>
+                        @endif
                     </div>
-                    <input type="text" id="bh-search-users" placeholder="Search doctors..." class="w-full px-4 py-2.5 bg-[#111111] border border-white/10 rounded-xl text-white placeholder-gray-500 text-sm focus:outline-none focus:border-[#FACC15]">
-                </div>
-                <div class="flex-1 overflow-y-auto">
-                    @foreach($__allDoctors as $doctor)
-                        <button onclick="openChatWindow({{ $doctor->id }}, '{{ addslashes($doctor->name) }}', '{{ $doctor->role }}')" class="flex items-center gap-3 p-3 hover:bg-white/5 transition-colors border-b border-white/5 w-full text-left">
-                            <div class="h-12 w-12 rounded-full bg-gradient-to-br from-[#FACC15] to-[#F59E0B] flex items-center justify-center text-black font-bold text-base shrink-0">
-                                {{ substr($doctor->name, 0, 1) }}
-                            </div>
-                            <div class="flex-1 min-w-0">
-                                <p class="text-sm font-semibold text-white truncate">{{ $doctor->name }}</p>
-                                <p class="text-xs text-gray-400 truncate">{{ ucfirst($doctor->role) }}</p>
-                            </div>
-                        </button>
-                    @endforeach
-                </div>
+                @empty
+                    <div class="text-center text-gray-400 text-sm py-12">No chat notifications yet</div>
+                @endforelse
             </div>
         </div>
 
@@ -702,21 +656,21 @@
                             </svg>
                         </button>
                         <!-- Actions Menu -->
-                        <div id="notifications-actions-menu" class="hidden absolute right-0 top-full mt-2 w-64 bg-[#0c0c0c] rounded-xl border border-white/10 shadow-2xl overflow-hidden z-[70]">
-                            <button onclick="markAllNotificationsAsRead()" class="w-full px-5 py-3.5 text-left text-sm text-white hover:bg-white/5 transition-colors border-b border-white/5">
-                                <div class="flex items-center gap-3">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <div id="notifications-actions-menu" class="hidden absolute right-0 top-full mt-2 w-52 bg-[#0c0c0c] rounded-xl border border-white/10 shadow-2xl overflow-hidden z-[70]">
+                            <button onclick="markAllNotificationsAsRead()" class="w-full px-4 py-2.5 text-left text-xs text-white hover:bg-white/5 transition-colors border-b border-white/5">
+                                <div class="flex items-center gap-2.5">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                         <polyline points="20 6 9 17 4 12"/>
                                     </svg>
-                                    <span class="font-semibold uppercase tracking-wider text-[11px]">Mark all as read</span>
+                                    <span>Mark all as read</span>
                                 </div>
                             </button>
-                            <button onclick="clearAllNotifications()" class="w-full px-5 py-3.5 text-left text-sm text-white hover:bg-white/5 transition-colors">
-                                <div class="flex items-center gap-3">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <button onclick="clearAllNotifications()" class="w-full px-4 py-2.5 text-left text-xs text-white hover:bg-white/5 transition-colors border-b border-white/5">
+                                <div class="flex items-center gap-2.5">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                         <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
                                     </svg>
-                                    <span class="font-semibold uppercase tracking-wider text-[11px]">Clear all</span>
+                                    <span>Clear all</span>
                                 </div>
                             </button>
                         </div>
@@ -729,36 +683,32 @@
             </div>
             
             <div id="notifications-list" class="flex-1 overflow-y-auto" style="max-height: calc(400px - 120px);">
-                @forelse(auth()->user()->notifications()->take(10)->get() as $notification)
+                @php
+                    $__userStatusNotifications = auth()->user()->notifications()
+                        ->where(function($q) {
+                            $q->where('data->type', 'status_updated')
+                              ->orWhere('data->type', 'status_update')
+                              ->orWhere('data->type', 'case_status_change');
+                        })
+                        ->orderByDesc('created_at')
+                        ->take(15)->get();
+                @endphp
+                @forelse($__userStatusNotifications as $notification)
                     <div class="notification-item flex items-start gap-3 p-3 hover:bg-white/5 transition-colors border-b border-white/5 {{ $notification->read_at ? '' : 'bg-[#FACC15]/5' }}" data-read="{{ $notification->read_at ? 'true' : 'false' }}">
                         <div class="h-10 w-10 rounded-full bg-gradient-to-br from-[#FACC15] to-[#F59E0B] flex items-center justify-center text-black shrink-0">
-                            @if(isset($notification->data['type']) && str_contains($notification->data['type'], 'message'))
-                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                                </svg>
-                            @elseif(isset($notification->data['type']) && str_contains($notification->data['type'], 'response'))
-                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <polyline points="9 17 4 12 9 7"/>
-                                    <path d="M20 18v-2a4 4 0 0 0-4-4H4"/>
-                                </svg>
-                            @elseif(isset($notification->data['type']) && str_contains($notification->data['type'], 'status'))
-                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
-                                </svg>
-                            @else
-                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/>
-                                </svg>
-                            @endif
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/>
+                            </svg>
                         </div>
                         <div class="flex-1 min-w-0">
                             <div class="flex items-center justify-between gap-2">
-                                <p class="text-xs font-bold text-white {{ !$notification->read_at ? 'text-[#FACC15]' : '' }}">{{ $notification->data['title'] ?? 'New notification' }}</p>
+                                <p class="text-xs font-bold text-white {{ !$notification->read_at ? 'text-[#FACC15]' : '' }}">{{ $notification->data['title'] ?? 'Case Updated' }}</p>
                                 <p class="text-[10px] text-[#FACC15]">{{ $notification->created_at->diffForHumans() }}</p>
                             </div>
-                            <p class="text-xs text-white leading-relaxed mt-0.5 {{ !$notification->read_at ? 'font-medium' : 'text-gray-300' }}">{{ $notification->data['message'] ?? 'New notification' }}</p>
-                            @if(isset($notification->data['batch_id']) && $notification->data['batch_id'])
-                                <a href="{{ route('user.reports.show', $notification->data['batch_id']) }}" class="inline-flex items-center gap-1 mt-1 text-[10px] text-[#FACC15] hover:text-white transition-colors">
+                            <p class="text-xs text-white leading-relaxed mt-0.5 {{ !$notification->read_at ? 'font-medium' : 'text-gray-300' }}">{{ $notification->data['message'] ?? 'Status changed.' }}</p>
+                            @php $_linkId = $notification->data['batch_id'] ?? $notification->data['report_id'] ?? null; @endphp
+                            @if($_linkId)
+                                <a href="{{ route('user.reports.show', $_linkId) }}" class="inline-flex items-center gap-1 mt-1 text-[10px] text-[#FACC15] hover:text-white transition-colors">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                         <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
                                         <polyline points="15,3 21,3 21,9"/>
@@ -773,7 +723,7 @@
                         @endif
                     </div>
                 @empty
-                    <div class="text-center text-gray-400 text-xs py-10">No notifications yet</div>
+                    <div class="text-center text-gray-400 text-xs py-10">No case updates yet</div>
                 @endforelse
             </div>
         </div>
@@ -1122,9 +1072,10 @@
                         data.notifications.forEach(notification => {
                             if (!seenNotificationIds.has(notification.id)) {
                                 seenNotificationIds.add(notification.id);
-                                if (window.showToast) {
-                                    window.showToast(notification.title, notification.message, 'info');
-                                }
+                                // The user requested to disable the toast popups shown in the first image
+                                // if (window.showToast) {
+                                //     window.showToast(notification.title, notification.message, 'info');
+                                // }
                                 newCount++;
                             }
                         });
