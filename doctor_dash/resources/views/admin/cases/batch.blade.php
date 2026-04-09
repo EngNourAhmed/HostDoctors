@@ -807,7 +807,6 @@
                     }
                     
                     #case-chat-file-preview {
-                        display: none;
                         overflow-x: auto;
                     }
                     #case-chat-file-preview::-webkit-scrollbar { height: 4px; }

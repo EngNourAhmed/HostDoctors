@@ -235,11 +235,13 @@ export default class CaseChatManager {
         if (!this.filePreview) return;
         if (this.pendingFiles.length === 0) {
             this.filePreview.classList.add('hidden');
+            this.filePreview.style.display = 'none';
             this.filePreview.innerHTML = '';
             return;
         }
 
         this.filePreview.classList.remove('hidden');
+        this.filePreview.style.display = 'flex';
         this.filePreview.innerHTML = `
             <div class="flex flex-wrap gap-3 p-4 bg-black/60 rounded-2xl border border-white/10 shadow-2xl backdrop-blur-md">
                 ${this.pendingFiles.map((file, i) => {
