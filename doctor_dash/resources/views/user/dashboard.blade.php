@@ -35,8 +35,8 @@
 
             <div class="bh-card p-6">
                 <p class="text-xs md:text-sm uppercase tracking-[0.22em] text-slate-400">Reviewed</p>
-                <p class="mt-4 text-1xl md:text-2xl font-semibold text-emerald-300">
-                    {{ $reviewedCasesCount ?? 0 }} {{ Str::plural('collection', $reviewedCasesCount ?? 0) }} reviewed
+                <p class="mt-4 text-3xl md:text-4xl font-semibold text-emerald-300">
+                    {{ $reviewedCasesCount ?? 0 }}
                 </p>
                 <div class="mt-4">
                     <a href="{{ route('user.reports.index') }}?filter=reviewed"
@@ -96,14 +96,16 @@
                                         </td>
                                         <td class="py-2 pr-4 text-slate-300">{{ $case->created_at->format('M j, Y g:i A') }}</td>
                                         <td class="py-2 pr-4 text-right">
-                                            <div class="flex items-center justify-end gap-3">
+                                            <div class="flex items-center justify-end gap-2">
                                                 <a href="{{ route('user.reports.show', $case->batch_id ?? $case->id) }}" 
-                                                   class="inline-flex items-center justify-center rounded-full border border-slate-600/70 px-2.5 py-1 text-[10px] font-semibold text-slate-200 hover:border-white hover:text-white transition-all">
-                                                   View
+                                                   class="inline-flex items-center justify-center rounded-full border border-slate-700 bg-white/5 h-8 w-8 text-slate-200 hover:border-white hover:text-white transition-all shadow-sm"
+                                                   title="View Case">
+                                                   <i data-lucide="eye" class="w-3.5 h-3.5"></i>
                                                 </a>
                                                 <a href="{{ route('user.reports.edit', $case) }}" 
-                                                   class="inline-flex items-center justify-center rounded-full border border-amber-500/40 bg-amber-500/5 px-2.5 py-1 text-[10px] font-semibold text-amber-300 hover:bg-amber-500/10 hover:border-amber-400 transition-all">
-                                                   Edit
+                                                   class="inline-flex items-center justify-center rounded-full border border-amber-500/20 bg-amber-500/10 h-8 w-8 text-amber-300 hover:bg-amber-400 hover:text-black transition-all shadow-sm"
+                                                   title="Edit Case">
+                                                   <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
                                                 </a>
                                             </div>
                                         </td>

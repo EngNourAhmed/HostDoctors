@@ -142,7 +142,11 @@ class ReportController extends Controller
         ]);
 
         // Map Full Arch / Single Implant UI names to internal names
-        $doctorName = $data['doctor_name'] ?? trim(($data['doctor_first_name'] ?? '') . ' ' . ($data['doctor_last_name'] ?? ''));
+        $doctorName = trim(($data['doctor_first_name'] ?? '') . ' ' . ($data['doctor_last_name'] ?? ''));
+        if (empty($doctorName)) {
+            $doctorName = $user->name;
+        }
+
         $doctorEmail = $data['doctor_email'] ?? $data['doctor_email_full_arch'] ?? $user->email;
         $doctorPhone = $data['doctor_phone'] ?? $data['doctor_phone_full_arch'] ?? $user->phone;
         
@@ -500,7 +504,11 @@ class ReportController extends Controller
             'logistics_comments' => ['nullable', 'string'],
         ]);
 
-        $doctorName = $data['doctor_name'] ?? trim(($data['doctor_first_name'] ?? '') . ' ' . ($data['doctor_last_name'] ?? ''));
+        $doctorName = trim(($data['doctor_first_name'] ?? '') . ' ' . ($data['doctor_last_name'] ?? ''));
+        if (empty($doctorName)) {
+            $doctorName = $user->name;
+        }
+
         $doctorEmail = $data['doctor_email'] ?? $data['doctor_email_full_arch'] ?? $user->email;
         $doctorPhone = $data['doctor_phone'] ?? $data['doctor_phone_full_arch'] ?? $user->phone;
         

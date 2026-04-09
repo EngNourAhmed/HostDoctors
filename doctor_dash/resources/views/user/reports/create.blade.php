@@ -102,7 +102,7 @@
                             <label for="title_std" class="block text-[10px] font-black uppercase tracking-widest text-[#FACC15]">
                                 Patient Name <span class="text-red-500">*</span>
                             </label>
-                            <input id="title_std" name="doctor_name" type="text" value="{{ old('doctor_name') }}"
+                            <input id="title_std" name="patient_name" type="text" value="{{ old('patient_name') }}"
                                 placeholder="Enter patient's full name"
                                 class="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-4 text-sm text-white placeholder:text-white/20 focus:outline-none focus:ring-1 focus:ring-[#FACC15] focus:border-[#FACC15] transition-all focus:bg-white/10 font-bold">
                         </div>

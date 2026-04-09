@@ -58,10 +58,10 @@ class DashboardController extends Controller
             })
             ->map(function ($conv) use ($user) {
                 $last = $conv->messages->first();
-                $conv->last_message = $last->body;
+                $conv->last_message = $last->body ?: ($last->file_path ? '📎 Shared an attachment' : 'Sent a file');
                 $conv->last_message_at = $last->created_at;
                 $conv->last_message_from_self = ($last->sender_id == $user->id);
-                $conv->sender_name = $last->sender ? $last->sender->name : 'System';
+                $conv->sender_name = $last->sender ? $last->sender->name : 'Admin';
                 
                 $report = \App\Models\Report::where('batch_id', $conv->batch_id)->first();
                 $conv->case_title = $report ? $report->title : 'Unknown Case';
