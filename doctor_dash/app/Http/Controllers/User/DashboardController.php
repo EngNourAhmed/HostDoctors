@@ -66,6 +66,13 @@ class DashboardController extends Controller
                 $report = \App\Models\Report::where('batch_id', $conv->batch_id)->first();
                 $conv->case_title = $report ? $report->title : 'Unknown Case';
                 
+                // NEW: Check for unread notifications for this batch
+                $conv->has_unread_notifications = $user->unreadNotifications()
+                    ->where(function($q) use ($conv) {
+                        $q->where('data->batch_id', $conv->batch_id)
+                          ->orWhere('data->report_id', $conv->batch_id);
+                    })->count() > 0;
+                
                 return $conv;
             })
             ->filter(function ($conv) {
@@ -74,7 +81,9 @@ class DashboardController extends Controller
             ->sortByDesc('last_message_at')
             ->take(5);
 
-        $unreadMessagesCount = $clientChats->count();
+        $unreadMessagesCount = $user->unreadNotifications()
+            ->where('data->type', 'case_message_received')
+            ->count();
 
         return view('user.dashboard', [
             'user' => $user,

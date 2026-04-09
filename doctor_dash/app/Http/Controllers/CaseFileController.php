@@ -18,6 +18,9 @@ class CaseFileController extends Controller
         $request->validate([
             'files' => ['required', 'array'],
             'files.*' => ['file'], // Removed size limit
+            'folder_type' => ['nullable', 'string', 'in:case_folder,doctor_private,doctor_public'],
+            'custom_names' => ['nullable', 'array'],
+            'custom_names.*' => ['nullable', 'string', 'max:255'],
         ]);
 
         // Find proof that this batch exists and we have access
@@ -28,15 +31,32 @@ class CaseFileController extends Controller
         }
 
         // Authorization: Check if user can add files to this case
-        // For now, let's assume auth user can add if they are admin or the case owner
         if (auth()->user()->role !== 'admin' && $firstReport->user_id !== auth()->id()) {
             abort(403, 'Unauthorized action.');
         }
 
-        foreach ($request->file('files') as $file) {
+        $files = $request->file('files');
+        $customNames = $request->input('custom_names', []);
+
+        foreach ($files as $index => $file) {
             $extension = $file->getClientOriginalExtension() ?: pathinfo($file->getClientOriginalName(), PATHINFO_EXTENSION);
             $filename = Str::random(40) . ($extension ? '.' . $extension : '');
             $path = $file->storeAs('reports', $filename, 'public');
+
+            // Determine folder type: Admin can choose, User is always 'case_folder'
+            $folderType = auth()->user()->role === 'admin' ? ($request->folder_type ?? 'doctor_public') : 'case_folder';
+
+            // Custom Name Logic
+            $originalName = $file->getClientOriginalName();
+            if (isset($customNames[$index]) && !empty(trim($customNames[$index]))) {
+                $customName = trim($customNames[$index]);
+                $customExt = pathinfo($customName, PATHINFO_EXTENSION);
+                // If no extension in custom name, append original extension
+                if (!$customExt && $extension) {
+                    $customName .= '.' . $extension;
+                }
+                $originalName = $customName;
+            }
 
             Report::create([
                 'user_id' => $firstReport->user_id, // Keep the original owner
@@ -44,8 +64,9 @@ class CaseFileController extends Controller
                 'title' => $firstReport->title,
                 'description' => $firstReport->description,
                 'file_path' => $path,
-                'original_name' => $file->getClientOriginalName(),
+                'original_name' => $originalName,
                 'mime_type' => $file->getClientMimeType(),
+                'folder_type' => $folderType,
                 'status' => $firstReport->status,
                 'updated_by' => auth()->id(),
             ]);
@@ -59,6 +80,47 @@ class CaseFileController extends Controller
         }
 
         return back()->with('success', 'Files uploaded successfully.');
+    }
+
+    /**
+     * Rename a specific file.
+     */
+    public function rename(Request $request, Report $report)
+    {
+        $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+        ]);
+
+        // Authorization: Admin can rename any. User can only rename THEIR OWN uploads OR files in THEIR case.
+        if (auth()->user()->role !== 'admin' && $report->user_id !== auth()->id() && $report->updated_by !== auth()->id()) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        // Smart Rename: keep extension if not provided
+        $newName = $request->name;
+        $currentExtension = pathinfo($report->original_name, PATHINFO_EXTENSION);
+        $newExtension = pathinfo($newName, PATHINFO_EXTENSION);
+
+        if (!$newExtension && $currentExtension) {
+            $newName .= '.' . $currentExtension;
+        }
+
+        $report->update([
+            'original_name' => $newName,
+            'updated_by' => auth()->id(),
+        ]);
+        
+        $report->refresh(); // Refresh to get the updated title if needed
+
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'File renamed successfully.',
+                'new_name' => $report->original_name
+            ]);
+        }
+
+        return back()->with('success', 'File renamed successfully.');
     }
 
     /**

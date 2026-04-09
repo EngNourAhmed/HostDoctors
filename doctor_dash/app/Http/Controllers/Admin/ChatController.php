@@ -550,6 +550,14 @@ class ChatController extends Controller
         return response()->json(['success' => true]);
     }
 
+    public function markNotificationAsRead(Request $request, $id)
+    {
+        $notification = $request->user()->notifications()->findOrFail($id);
+        $notification->markAsRead();
+
+        return response()->json(['success' => true]);
+    }
+
     public function clearAllNotifications(Request $request)
     {
         $currentUser = $request->user();

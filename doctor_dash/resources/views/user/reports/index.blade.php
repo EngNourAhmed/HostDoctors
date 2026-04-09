@@ -44,11 +44,11 @@
                 <table class="min-w-full text-sm text-slate-200">
                     <thead class="bg-slate-900/80 text-slate-400 border-b border-slate-700/70">
                         <tr>
-                            <th class="text-left py-3 px-4">Patient Name</th>
-                            <th class="text-left py-3 px-4">Uploaded at</th>
-                            <th class="text-left py-3 px-4">Status</th>
-                            <th class="text-left py-3 px-4">Files</th>
-                            <th class="text-left py-3 px-4">Actions</th>
+                            <th class="text-left py-3 px-4 w-1/3">Patient Name</th>
+                            <th class="text-left py-3 px-4 w-1/4">Uploaded at</th>
+                            <th class="text-left py-3 px-4 w-1/6">Status</th>
+                            <th class="text-left py-3 px-4 w-1/6">Files</th>
+                            <th class="text-left py-3 px-4 text-right">Actions</th>
                         </tr>
                     </thead>
                     <tbody>

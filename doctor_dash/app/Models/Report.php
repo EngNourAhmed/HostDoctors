@@ -23,6 +23,7 @@ class Report extends Model
         'original_name',
         'mime_type',
         'size',
+        'folder_type',
         'status',
         'is_reply',
         'reviewed_at',

@@ -46,6 +46,9 @@ class CaseChatController extends Controller
                     'sender_name' => $message->sender ? $message->sender->name : 'Unknown',
                     'sender_id' => $message->sender_id,
                     'body' => $message->body,
+                    'file_url' => $message->file_path ? \Illuminate\Support\Facades\Storage::url($message->file_path) : null,
+                    'file_name' => $message->file_name,
+                    'mime_type' => $message->mime_type,
                     'is_self' => (String)$message->sender_id === (String)$user->id,
                     'created_at' => $message->created_at->format('Y-m-d h:i A'),
                 ];
@@ -67,36 +70,84 @@ class CaseChatController extends Controller
      */
     public function send(Request $request, $batchId)
     {
+        \Illuminate\Support\Facades\Log::emergency('DEEP DEBUG: REACHED CaseChatController@send', [
+            'batch_id' => $batchId,
+            'user' => $request->user()?->id,
+            'method' => $request->method(),
+            'url' => $request->fullUrl()
+        ]);
+
         try {
             $user = $request->user();
-            \Illuminate\Support\Facades\Log::info('Case chat send request', ['batch_id' => $batchId, 'user_id' => $user->id, 'message' => $request->message]);
             
             // Verify access
             if (!$this->canAccessCase($user, $batchId)) {
+                \Illuminate\Support\Facades\Log::warning('DEEP DEBUG: Unauthorized', ['user_id' => $user?->id, 'batch_id' => $batchId]);
                 return response()->json(['error' => 'Unauthorized access'], 403);
             }
             
-            $request->validate([
-                'message' => 'required|string|max:5000',
+            \Illuminate\Support\Facades\Log::info('Case chat send request processed', [
+                'batch_id' => $batchId,
+                'user_id' => $user->id,
+                'has_message' => !empty($request->message),
+                'has_file' => $request->hasFile('file')
             ]);
+
+            try {
+                $request->validate([
+                    'message' => 'nullable|string|max:10000',
+                    'file' => 'nullable|file|max:2048000',
+                ]);
+            } catch (\Illuminate\Validation\ValidationException $ve) {
+                \Illuminate\Support\Facades\Log::error('DEEP DEBUG: Validation failed', ['errors' => $ve->errors()]);
+                throw $ve;
+            }
+            
+            if (!$request->message && !$request->hasFile('file')) {
+                return response()->json(['error' => 'Message or file is required'], 422);
+            }
             
             $conversation = $this->getOrCreateConversation($batchId);
             
-            $message = Message::create([
+            $fileData = [];
+            if ($request->hasFile('file')) {
+                $file = $request->file('file');
+                $extension = strtolower($file->getClientOriginalExtension()) ?: pathinfo($file->getClientOriginalName(), PATHINFO_EXTENSION);
+                $filename = \Illuminate\Support\Str::random(40) . ($extension ? '.' . $extension : '');
+                $path = $file->storeAs('chat_attachments', $filename, 'public');
+                
+                $fileData = [
+                    'file_path' => $path,
+                    'file_name' => $file->getClientOriginalName(),
+                    'mime_type' => $file->getClientMimeType(),
+                ];
+                
+                \Illuminate\Support\Facades\Log::info('Chat file stored successfully', ['path' => $path]);
+            }
+            
+            $message = Message::create(array_merge([
                 'conversation_id' => $conversation->id,
                 'sender_id' => $user->id,
-                'body' => $request->message,
-            ]);
+                'body' => (string)($request->message ?? ''),
+            ], $fileData));
             
+            \Illuminate\Support\Facades\Log::info('DEEP DEBUG: Message created in DB', ['id' => $message->id]);
+
             // Notify participants
-            $this->notifyParticipants($conversation, $user, $batchId);
+            try {
+                $this->notifyParticipants($conversation, $user, $batchId);
+            } catch (\Exception $ne) {
+                \Illuminate\Support\Facades\Log::error('DEEP DEBUG: Notification failed (non-blocking)', ['error' => $ne->getMessage()]);
+            }
             
             return response()->json(['ok' => true, 'message' => $message]);
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json(['error' => $e->errors()], 422);
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error('Case chat send error: ' . $e->getMessage());
-            return response()->json(['error' => 'Failed to send message'], 500);
+            \Illuminate\Support\Facades\Log::error('DEEP DEBUG: General error in send: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString()
+            ]);
+            return response()->json(['error' => 'Failed to send message: ' . $e->getMessage()], 500);
         }
     }
     

@@ -187,81 +187,133 @@
             </div>
             </div>
             
-            @if($reports->count() > 0)
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6 mb-8">
-                    @foreach ($reports as $report)
-                        <div class="bg-[#111111] rounded-[20px] border border-white/10 p-5 group flex flex-col justify-between hover:border-white/20 transition-all duration-300">
-                            <div class="flex flex-col mb-6">
-                                <div class="flex items-start justify-between mb-2">
-                                    <p class="text-sm font-bold text-white leading-tight pr-4 break-words line-clamp-2" title="{{ $report->original_name }}">
-                                        {{ $report->original_name }}
-                                    </p>
-                                    <div class="flex flex-col items-end gap-1">
-                                        <span class="shrink-0 inline-flex items-center rounded-md bg-[#FACC15]/10 px-2 py-0.5 text-[10px] font-bold text-[#FACC15] border border-[#FACC15]/20 uppercase tracking-widest">
-                                            {{ strtoupper(pathinfo($report->original_name, PATHINFO_EXTENSION)) }}
-                                        </span>
-                                        @if(isset($report->clinical_data['file_category']))
-                                            <span class="shrink-0 inline-flex items-center rounded-md bg-blue-500/10 px-2 py-0.5 text-[8px] font-black text-blue-400 border border-blue-500/20 uppercase tracking-tighter">
-                                                {{ str_replace('_', ' ', $report->clinical_data['file_category']) }}
-                                            </span>
-                                        @endif
+            @php
+                $folders = [
+                    'case_folder' => ['title' => 'Case Folder', 'icon' => 'M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z', 'color' => 'text-blue-400'],
+                    'doctor_public' => ['title' => 'Admin Public', 'icon' => 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z', 'color' => 'text-[#FACC15]'],
+                ];
+            @endphp
+
+            @foreach($folders as $type => $info)
+                @php $folderFiles = $reports->where('folder_type', $type); @endphp
+                @if($folderFiles->count() > 0)
+                    <div class="mb-4">
+                        <!-- Folder Header (Clickable) -->
+                        <button type="button" 
+                            onclick="window.toggleBHFolders('{{ $type }}')"
+                            class="w-full flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-[#FACC15]/30 transition-all group overflow-hidden relative">
+                            <div class="absolute inset-x-0 bottom-0 h-[2px] bg-[#FACC15] transform translate-y-full group-hover:translate-y-0 transition-transform opacity-30"></div>
+                            
+                            <div class="flex items-center gap-4">
+                                <div class="h-12 w-12 rounded-xl bg-black/40 border border-white/10 flex items-center justify-center {{ $info['color'] }} group-hover:scale-110 transition-transform">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $info['icon'] }}" />
+                                    </svg>
+                                </div>
+                                <div class="text-left">
+                                    <h4 class="text-sm font-black text-white uppercase tracking-widest group-hover:text-[#FACC15] transition-colors">{{ $info['title'] }}</h4>
+                                    <p class="text-[10px] text-slate-500 font-bold tracking-widest mt-0.5 uppercase">{{ $folderFiles->count() }} FILE(S)</p>
+                                </div>
+                            </div>
+
+                            <div class="flex items-center gap-4">
+                                <span class="text-[10px] font-black text-slate-600 uppercase tracking-[0.2em] group-hover:text-slate-400 transition-colors">CLICK TO VIEW</span>
+                                <div class="h-8 w-8 rounded-lg bg-white/5 flex items-center justify-center text-slate-500 group-hover:text-white transition-all transform transition-transform duration-300" id="chevron-{{ $type }}">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 9l-7 7-7-7"/></svg>
+                                </div>
+                            </div>
+                        </button>
+
+                        <!-- Folder Content (File Grid) -->
+                        <div id="folder-content-{{ $type }}" class="hidden overflow-hidden transition-all duration-500 ease-in-out mt-6">
+                            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6 animate-in fade-in slide-in-from-top-4 duration-500">
+                                @foreach ($folderFiles as $report)
+                                    <div class="bg-[#111111] rounded-[20px] border border-white/10 p-5 group/card flex flex-col justify-between hover:border-white/20 hover:bg-black/40 transition-all duration-300">
+                                        <div class="flex flex-col mb-6">
+                                            <div class="flex items-start justify-between mb-2">
+                                                <p class="text-sm font-bold text-white leading-tight pr-4 break-words line-clamp-2" title="{{ $report->original_name }}">
+                                                    {{ $report->original_name }}
+                                                </p>
+                                                <div class="flex flex-col items-end gap-1">
+                                                    <span class="shrink-0 inline-flex items-center rounded-md bg-[#FACC15]/10 px-2 py-0.5 text-[10px] font-bold text-[#FACC15] border border-[#FACC15]/20 uppercase tracking-widest">
+                                                        {{ strtoupper(pathinfo($report->original_name, PATHINFO_EXTENSION)) }}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                                                {{ $report->mime_type }} • {{ round($report->size / 1024, 1) }} KB
+                                            </p>
+                                            <div class="flex items-center justify-between mt-1">
+                                                <p class="text-[10px] text-gray-500">
+                                                    Uploaded: {{ $report->created_at->format('Y-m-d h:i A') }}
+                                                </p>
+                                                <span class="text-[9px] font-black px-2 py-0.5 rounded bg-white/5 border border-white/10 {{ optional($report->updatedBy)->role === 'admin' ? 'text-[#FACC15]' : 'text-blue-400' }} uppercase tracking-widest flex items-center gap-1.5">
+                                                    <span class="opacity-70 font-bold">{{ optional($report->updatedBy)->name }}</span>
+                                                    <span class="w-1 h-1 rounded-full bg-current opacity-30"></span>
+                                                    <span>{{ optional($report->updatedBy)->role === 'admin' ? 'Admin' : 'Client' }}</span>
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        <div class="flex flex-col gap-2">
+                                            <div class="flex items-center gap-2">
+                                                <button type="button"
+                                                    class="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg bg-black border border-white/10 text-[11px] font-bold text-white hover:bg-white/5 transition-colors text-center shadow-sm"
+                                                    onclick='window.openBHPreview({
+                                                        url: {{ json_encode(route("user.reports.preview", $report->id)) }},
+                                                        downloadUrl: {{ json_encode(route("user.reports.download", $report)) }},
+                                                        mime: {{ json_encode($report->mime_type) }},
+                                                        title: {{ json_encode($report->original_name) }},
+                                                        created: {{ json_encode($report->created_at->format("Y-m-d h:i A")) }}
+                                                    })'>
+                                                    View File
+                                                </button>
+
+                                                <a href="{{ route('user.reports.download', $report) }}" 
+                                                    class="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg bg-[#FACC15] border border-[#FACC15] text-[11px] font-black text-black hover:bg-[#FACC15]/90 transition-colors text-center shadow-sm">
+                                                    Save File
+                                                </a>
+                                            </div>
+                                            <div class="flex items-center gap-2">
+                                                @if(auth()->id() === $report->updated_by)
+                                                <button type="button" 
+                                                    class="rename-file-btn flex-1 py-1.5 rounded-lg bg-white/5 border border-white/10 text-[11px] font-bold text-[#FACC15] hover:bg-[#FACC15]/10 transition-colors flex items-center justify-center gap-1.5"
+                                                    data-report-id="{{ $report->id }}"
+                                                    data-current-name="{{ $report->original_name }}">
+                                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                                                    Rename
+                                                </button>
+                                                @endif
+                                                <button type="button" 
+                                                    class="copy-link-btn flex-1 py-1.5 rounded-lg bg-white/5 border border-white/10 text-[11px] font-bold text-white hover:bg-white/10 transition-colors"
+                                                    data-report-id="{{ $report->id }}">
+                                                    Link
+                                                </button>
+                                                @if(auth()->user()->role === 'admin' || $report->updated_by === auth()->id())
+                                                    <form action="{{ route('case.files.destroy', $report) }}" method="POST" onsubmit="return confirm('Are you sure you want to remove this file?')" class="m-0">
+                                                        @csrf
+                                                        @method('DELETE')
+                                                        <button type="submit" class="p-2 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-all">
+                                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                            </svg>
+                                                        </button>
+                                                    </form>
+                                                @endif
+                                            </div>
+                                        </div>
                                     </div>
-                                </div>
-                                <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-                                    {{ $report->mime_type }} • {{ round($report->size / 1024, 1) }} KB
-                                </p>
-                                <div class="flex items-center justify-between mt-1">
-                                    <p class="text-[10px] text-gray-500">
-                                        Uploaded: {{ $report->created_at->format('Y-m-d h:i A') }}
-                                    </p>
-                                    <span class="text-[9px] font-black px-2 py-0.5 rounded bg-white/5 border border-white/10 {{ optional($report->updatedBy)->role === 'admin' ? 'text-[#FACC15]' : 'text-blue-400' }} uppercase tracking-widest flex items-center gap-1.5">
-                                        <span class="opacity-70 font-bold">{{ optional($report->updatedBy)->name }}</span>
-                                        <span class="w-1 h-1 rounded-full bg-current opacity-30"></span>
-                                        <span>{{ optional($report->updatedBy)->role === 'admin' ? 'Admin' : 'Client' }}</span>
-                                    </span>
-                                </div>
+                                @endforeach
                             </div>
-
-                            <div class="flex flex-col gap-2">
-                                <div class="flex items-center gap-2">
-                                    <button type="button"
-                                        class="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg bg-black border border-white/10 text-[11px] font-bold text-white hover:bg-white/5 transition-colors text-center shadow-sm"
-                                        onclick='window.openBHPreview({
-                                            url: {{ json_encode(route("user.reports.preview", $report->id)) }},
-                                            downloadUrl: {{ json_encode(route("user.reports.download", $report)) }},
-                                            mime: {{ json_encode($report->mime_type) }},
-                                            title: {{ json_encode($report->original_name) }},
-                                            created: {{ json_encode($report->created_at->format("Y-m-d h:i A")) }}
-                                        })'>
-                                        View File
-                                    </button>
-
-                                    <a href="{{ route('user.reports.download', $report) }}" 
-                                       class="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg bg-[#FACC15] border border-[#FACC15] text-[11px] font-black text-black hover:bg-[#FACC15]/90 transition-colors text-center shadow-sm">
-                                        Save File
-                                    </a>
-                                </div>
-                                <div class="flex items-center gap-2">
-                                    <button type="button" 
-                                        class="copy-link-btn flex-1 py-1.5 rounded-lg bg-white/5 border border-white/10 text-[11px] font-bold text-white hover:bg-white/10 transition-colors"
-                                        data-report-id="{{ $report->id }}">
-                                        Copy Link
-                                    </button>
-                                    @if(auth()->user()->role === 'admin' || $report->updated_by === auth()->id())
-                                        <form action="{{ route('case.files.destroy', $report) }}" method="POST" onsubmit="return confirm('Are you sure you want to remove this file?')">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit" class="p-2 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-all">
-                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                                </svg>
-                                            </button>
-                                        </form>
-                                    @endif
-                                </div>
-                            </div>
+                            <div class="h-12"></div> <!-- Spacer -->
                         </div>
-                    @endforeach
+                    </div>
+                @endif
+            @endforeach
+
+            @if($reports->count() === 0)
+                <div class="text-center py-20 bg-[#111111] rounded-[32px] border border-white/5 border-dashed mb-8">
+                    <p class="text-slate-500 font-bold uppercase tracking-widest text-sm">No files uploaded yet</p>
                 </div>
             @endif
 
@@ -283,22 +335,17 @@
                         <input type="file" name="files[]" id="new_case_files" multiple
                             class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10">
                         <div class="border-2 border-dashed border-white/10 rounded-2xl p-10 flex flex-col items-center justify-center gap-4 group-hover:border-[#FACC15]/30 group-hover:bg-[#FACC15]/5 transition-all">
-                            <div class="h-14 w-14 rounded-2xl bg-white/5 flex items-center justify-center border border-white/10 group-hover:bg-[#FACC15]/20 group-hover:border-[#FACC15]/30 group-hover:scale-110 transition-all">
-                                <svg class="w-8 h-8 text-slate-400 group-hover:text-[#FACC15]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <div class="h-16 w-16 rounded-2xl bg-white/5 flex items-center justify-center border border-white/10 group-hover:bg-[#FACC15]/20 group-hover:border-[#FACC15]/30 group-hover:scale-110 transition-all">
+                                <svg class="w-8 h-8 text-[#FACC15]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                                 </svg>
                             </div>
                             <div class="text-center">
-                                <p class="text-white font-bold tracking-tight">Drop files here or click to upload</p>
-                                <p class="text-[11px] text-slate-500 font-bold tracking-widest mt-1 uppercase">SUPPORTED FILES: ANY FORMAT, NO SIZE LIMIT</p>
+                                <p class="text-sm font-black text-white uppercase tracking-widest mb-1">Click or drag files here to upload</p>
+                                <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Support for PDF, JPG, PNG, STL, DCM</p>
                             </div>
                         </div>
                     </div>
-
-                    <div id="file-list-preview" class="hidden grid grid-cols-2 md:grid-cols-4 gap-4 p-4 rounded-2xl bg-black/40 border border-white/5">
-                        <!-- Preview list will be populated by JS -->
-                    </div>
-
                     <div class="flex justify-end pt-4">
                         <button type="submit" id="submit-upload-btn" class="group flex items-center gap-3 px-8 py-4 bg-[#FACC15] hover:bg-[#EAB308] rounded-2xl text-black font-black tracking-widest transition-all hover:scale-105 active:scale-95 shadow-[0_0_20px_rgba(250,204,21,0.2)]">
                             <svg class="w-5 h-5 transition-transform group-hover:translate-y-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
@@ -307,6 +354,21 @@
                     </div>
                 </form>
             </div>
+
+
+            <!-- Inline Rename Form Template -->
+            <template id="rename-form-template">
+                <div class="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+                    <div class="bg-[#111111] rounded-2xl border border-white/10 p-6 max-w-md w-full shadow-2xl scale-95 animate-in fade-in zoom-in duration-200">
+                        <h4 class="text-lg font-black text-white mb-4 uppercase tracking-tight">Rename File</h4>
+                        <input type="text" id="rename-input" class="w-full px-4 py-3 bg-black border border-white/10 rounded-xl text-white mb-6 focus:border-[#FACC15] focus:outline-none font-bold">
+                        <div class="flex gap-3 justify-end">
+                            <button type="button" class="cancel-rename px-5 py-2.5 rounded-xl bg-white/5 text-white text-xs font-bold hover:bg-white/10 transition-all">Cancel</button>
+                            <button type="button" class="confirm-rename px-5 py-2.5 rounded-xl bg-[#FACC15] text-black text-xs font-black hover:bg-[#FACC15]/90 transition-all">SAVE NAME</button>
+                        </div>
+                    </div>
+                </div>
+            </template>
 
 
         </div>
@@ -322,37 +384,43 @@
                             <h3 class="text-xl font-black text-white tracking-tight uppercase">Case Notes</h3>
                             <p class="text-[11px] text-slate-500 font-bold tracking-widest mt-1">IMPORTANT CASE UPDATES & INSTRUCTIONS</p>
                         </div>
+                        @if(in_array(auth()->user()->role, ['admin', 'assistant', 'admin_assistant']))
                         <button type="button" onclick="document.getElementById('add-note-section').scrollIntoView({behavior: 'smooth'})"
                             class="px-5 py-2.5 rounded-xl bg-[#FACC15] text-black text-xs font-black hover:bg-[#FACC15]/90 transition-all flex items-center gap-2 shadow-lg shadow-yellow-400/10">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
                             ADD NEW NOTE
                         </button>
+                        @endif
                     </div>
 
                     <div class="overflow-x-auto">
                         <table class="w-full text-left border-collapse">
                             <thead>
                                 <tr class="bg-white/[0.02]">
-                                    <th class="px-6 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest border-b border-white/5">Details</th>
-                                    <th class="px-6 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest border-b border-white/5">Subject</th>
-                                    <th class="px-6 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest border-b border-white/5">Note Content</th>
-                                    <th class="px-6 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest border-b border-white/5 text-right">Actions</th>
+                                    <th class="px-6 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest border-b border-white/5 w-1/5">Details</th>
+                                    <th class="px-6 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest border-b border-white/5 w-1/4">Subject</th>
+                                    <th class="px-6 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest border-b border-white/5 w-[55%]">Note Content</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-white/5">
                                 @php
-                                    $allNotes = $reports->first()->caseNotes->sortByDesc('created_at');
+                                    $adminRoles = ['admin', 'assistant', 'admin_assistant'];
+                                    $allNotes = $reports->first()->caseNotes
+                                        ->filter(function($note) use ($adminRoles) {
+                                            return in_array($note->user->role, $adminRoles);
+                                        })
+                                        ->sortByDesc('created_at');
                                 @endphp
                                 @forelse($allNotes as $note)
                                     <tr class="hover:bg-white/[0.02] transition-colors group">
-                                        <td class="px-6 py-5 align-top w-48">
+                                        <td class="px-6 py-5 align-top">
                                             <div class="flex flex-col gap-1">
                                                 <span class="text-xs font-black text-[#FACC15]">{{ $note->user->name }}</span>
                                                 <span class="text-[10px] text-slate-500 font-bold">{{ $note->created_at->format('M d, Y') }}</span>
                                                 <span class="text-[10px] text-slate-600 font-medium">{{ $note->created_at->format('h:i A') }}</span>
                                             </div>
                                         </td>
-                                        <td class="px-6 py-5 align-top w-64">
+                                        <td class="px-6 py-5 align-top">
                                             <span class="text-sm font-bold text-white tracking-tight leading-snug">{{ $note->subject }}</span>
                                         </td>
                                         <td class="px-6 py-5 align-top">
@@ -360,30 +428,10 @@
                                                 {!! $note->message !!}
                                             </div>
                                         </td>
-                                        <td class="px-6 py-5 align-top text-right">
-                                            <div class="flex items-center justify-end gap-2">
-                                                @if($note->user_id === auth()->id() || in_array(auth()->user()->role, ['admin', 'assistant', 'admin_assistant']))
-                                                    <button type="button" onclick="editNote({{ $note->id }})" class="p-2 rounded-lg bg-blue-500/10 text-blue-500 hover:bg-blue-500 hover:text-white transition-all">
-                                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-                                                        </svg>
-                                                    </button>
-                                                    <form action="{{ route('case.notes.destroy', $note) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this note?')">
-                                                        @csrf
-                                                        @method('DELETE')
-                                                        <button type="submit" class="p-2 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-all">
-                                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                                            </svg>
-                                                        </button>
-                                                    </form>
-                                                @endif
-                                            </div>
-                                        </td>
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="4" class="px-6 py-12 text-center">
+                                        <td colspan="3" class="px-6 py-12 text-center">
                                             <div class="flex flex-col items-center gap-3">
                                                 <div class="h-12 w-12 rounded-2xl bg-white/5 flex items-center justify-center border border-white/10">
                                                     <svg class="w-6 h-6 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
@@ -396,8 +444,7 @@
                             </tbody>
                         </table>
                     </div>
-                </div>
-
+                </div>                @if(in_array(auth()->user()->role, ['admin', 'assistant', 'admin_assistant']))
                 <!-- Add Note Form -->
                 <div id="add-note-section" class="bg-[#111111] rounded-2xl border border-white/10 overflow-hidden shadow-2xl">
                     <div class="p-6 border-b border-white/10 bg-gradient-to-r from-white/[0.02] to-transparent">
@@ -407,6 +454,31 @@
 
                     <form action="{{ route('case.notes.store', $batch_id) }}" method="POST" class="p-6 space-y-6">
                         @csrf
+                        
+                        @if (session('success'))
+                            <div class="mb-4 bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 px-4 py-3 rounded-lg text-sm font-bold flex items-center gap-2">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                                {{ session('success') }}
+                            </div>
+                        @endif
+
+                        @if (session('error'))
+                            <div class="mb-4 bg-red-500/10 border border-red-500/20 text-red-500 px-4 py-3 rounded-lg text-sm font-bold flex items-center gap-2">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                {{ session('error') }}
+                            </div>
+                        @endif
+
+                        @if ($errors->any())
+                            <div class="mb-4 bg-red-500/10 border border-red-500/20 text-red-500 px-4 py-3 rounded-lg text-sm font-bold">
+                                <ul class="list-disc pl-5 space-y-1">
+                                    @foreach ($errors->all() as $error)
+                                        <li>{{ $error }}</li>
+                                    @endforeach
+                                </ul>
+                            </div>
+                        @endif
+
                         <div class="space-y-2">
                             <label for="subject" class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Subject / Title</label>
                             <input type="text" name="subject" id="subject" required placeholder="e.g., Question about surgical guide"
@@ -428,6 +500,7 @@
                         </div>
                     </form>
                 </div>
+                @endif
             </div>
         </div>
 
@@ -492,6 +565,18 @@
                 })
                 .then(editor => {
                     editorInstance = editor;
+                    
+                    const form = document.querySelector('#add-note-section form');
+                    if (form) {
+                        form.addEventListener('submit', function(e) {
+                            editor.updateSourceElement();
+                        });
+                    }
+                    
+                    editor.model.document.on('change:data', () => {
+                        const textarea = document.querySelector('#editor');
+                        if (textarea) textarea.value = editor.getData();
+                    });
                 })
                 .catch(error => {
                     console.error(error);
@@ -516,6 +601,15 @@
                         title.textContent = 'Edit Case Note';
                         submitBtn.textContent = 'UPDATE CASE NOTE';
                         
+                        // Add PUT method override if not exists
+                        if (!form.querySelector('input[name="_method"]')) {
+                            const methodInput = document.createElement('input');
+                            methodInput.type = 'hidden';
+                            methodInput.name = '_method';
+                            methodInput.value = 'PUT';
+                            form.appendChild(methodInput);
+                        }
+                        
                         // Scroll to form
                         addNoteSection.scrollIntoView({behavior: 'smooth'});
                     })
@@ -525,7 +619,7 @@
             }
         </script>
 
-        <div data-tab-content="chat" class="tab-content hidden">
+        <div id="chat" data-tab-content="chat" class="tab-content hidden">
             <div class="w-full mx-auto">
                 <h3 class="text-xl font-bold mb-6 text-white tracking-tight">Case Discussion</h3>
                 
@@ -537,118 +631,236 @@
                         </div>
 
                         <!-- Message Input Form -->
-                        <div class="border-t border-white/10 p-4 bg-[#0c0c0c]">
-                            <form id="case-chat-form" class="flex gap-3">
-                                <textarea 
-                                    id="case-chat-input" 
-                                    placeholder="Type your message..." 
-                                    rows="2"
-                                    class="flex-1 px-4 py-3 bg-[#111111] border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-[#FACC15] resize-none"
-                                ></textarea>
-                                <button type="submit" class="px-8 py-3 rounded-xl bg-[#FACC15] border border-[#FACC15] text-sm font-black text-black hover:bg-[#FACC15]/90 transition-colors self-end">
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+                        <div class="p-3 bg-[#0c0c0c] border-t border-white/5">
+                            <div id="case-chat-file-preview" class="hidden mb-3"></div>
+                            <form id="case-chat-form" class="flex items-center gap-2">
+                                <input type="file" id="case-chat-file" class="hidden" multiple>
+                                <button type="button" id="case-chat-attach-btn" class="p-2.5 rounded-xl bg-white/5 text-slate-400 hover:text-[#FACC15] hover:bg-white/10 transition-all border border-white/5">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/>
+                                    </svg>
+                                </button>
+                                <div class="flex-1 chat-input-wrapper">
+                                    <textarea 
+                                        id="case-chat-input" 
+                                        placeholder="Type a message..." 
+                                        rows="1"
+                                        class="flex-1 bg-transparent border-none text-[15px] text-[#e9edef] placeholder-[#8696a0] focus:ring-0 resize-none py-2 px-1"
+                                    ></textarea>
+                                </div>
+                                <button type="submit" class="w-12 h-12 flex items-center justify-center rounded-full bg-[#FACC15] text-black hover:bg-[#EAB308] transition-all shadow-lg active:scale-95 group">
+                                    <svg class="w-6 h-6 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="3">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
                                     </svg>
                                 </button>
                             </form>
                         </div>
                     </div>
                 </div>
+                
+                <!-- Chat Lightbox -->
+                <div id="chat-lightbox" class="fixed inset-0 z-[9999] bg-black/95 flex items-center justify-center hidden opacity-0 transition-opacity duration-300">
+                    <button id="close-lightbox" class="absolute top-6 right-6 text-white/50 hover:text-white transition-colors p-2">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                    <div class="max-w-[90vw] max-h-[90vh] relative group">
+                        <img id="lightbox-img" src="" class="max-w-full max-h-[90vh] object-contain rounded-lg">
+                        <p id="lightbox-caption" class="text-white/70 text-sm mt-4 text-center font-medium"></p>
+                    </div>
+                </div>
+
+                <style>
+                    /* Upload Progress & WhatsApp Styles */
+                    #case-chat-messages {
+                        background-color: #0c0c0c; /* Deep Site Black */
+                        background-repeat: no-repeat;
+                    }
+
+                    .message-bubble {
+                        position: relative;
+                        max-width: 85%;
+                        padding: 10px 45px 10px 14px; /* More right padding for info */
+                        border-radius: 12px;
+                        margin-bottom: 4px;
+                        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+                        min-width: 80px;
+                    }
+
+                    .message-self {
+                        background-color: #FACC15; /* Brand Yellow */
+                        color: #000000;
+                        align-self: flex-end;
+                        border-top-right-radius: 2px;
+                    }
+
+                    .message-other {
+                        background-color: #1a1a1a; /* Matching Site Card Background */
+                        color: #e9edef;
+                        align-self: flex-start;
+                        border-top-left-radius: 2px;
+                        border: 1px solid rgba(255,255,255,0.05);
+                    }
+
+                    .message-tail-self {
+                        position: absolute;
+                        top: 0;
+                        right: -8px;
+                        width: 12px;
+                        height: 15px;
+                        background-color: #FACC15;
+                        clip-path: polygon(0 0, 0% 100%, 100% 0);
+                    }
+
+                    .message-tail-other {
+                        position: absolute;
+                        top: 0;
+                        left: -8px;
+                        width: 12px;
+                        height: 15px;
+                        background-color: #1a1a1a;
+                        clip-path: polygon(100% 0, 100% 100%, 0 0);
+                    }
+
+                    .message-time {
+                        position: absolute;
+                        bottom: 4px;
+                        right: 8px;
+                        font-size: 10px;
+                        color: rgba(0, 0, 0, 0.5);
+                    }
+                    .message-other .message-time {
+                        color: rgba(233, 237, 239, 0.6);
+                    }
+
+                    .loading-spinner-whatsapp {
+                        display: inline-block;
+                        width: 24px;
+                        height: 24px;
+                        border: 2px solid rgba(255, 255, 255, 0.2);
+                        border-radius: 50%;
+                        border-top-color: #fff;
+                        animation: spin 1s ease-in-out infinite;
+                    }
+
+                    .progress-overlay-whatsapp {
+                        position: absolute;
+                        inset: 0;
+                        background: rgba(0, 0, 0, 0.5);
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        backdrop-filter: blur(1px);
+                        z-index: 20;
+                    }
+
+                    .progress-circle-container {
+                        position: relative;
+                        width: 50px;
+                        height: 50px;
+                    }
+                    
+                    #case-chat-messages::-webkit-scrollbar { width: 6px; }
+                    #case-chat-messages::-webkit-scrollbar-track { background: transparent; }
+                    #case-chat-messages::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
+                    #case-chat-messages::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+
+                    .chat-image-preview {
+                        cursor: pointer;
+                        transition: filter 0.2s;
+                    }
+                    .chat-image-preview:hover {
+                        filter: brightness(0.9);
+                    }
+                    
+                    /* Multi-file preview area */
+                    #case-chat-file-preview {
+                        display: none;
+                        overflow-x: auto;
+                    }
+                    #case-chat-file-preview::-webkit-scrollbar { height: 4px; }
+                    #case-chat-file-preview .preview-item {
+                        flex: 0 0 auto;
+                        width: 220px;
+                    }
+
+                    /* Input area redesign */
+                    .chat-input-wrapper {
+                        background: #111111;
+                        border-radius: 20px;
+                        padding: 4px 12px;
+                        display: flex;
+                        align-items: center;
+                        gap: 8px;
+                        border: 1px solid rgba(255,255,255,0.05);
+                        transition: border-color 0.2s;
+                    }
+                    .chat-input-wrapper:focus-within {
+                        border-color: rgba(250, 204, 21, 0.3);
+                    }
+                </style>
             </div>
         </div>
     </div>
-
+    
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // Initialize CaseDetailTabs
-            window.caseDetailTabs = new CaseDetailTabs('case-detail-tabs', 'files');
-            
-            // Initialize CaseFileUpload
-            window.caseFileUpload = new CaseFileUpload('case-file-upload-form', '{{ $batch_id }}');
-            
-            // Initialize CaseChatManager
-            window.caseChatManager = new CaseChatManager(
-                '{{ $batch_id }}',
-                '{{ route('case.chat.messages', $batch_id) }}',
-                '{{ route('case.chat.send', $batch_id) }}'
-            );
+            // 1. Tab Initialization & Switching
+            const tabButtons = document.querySelectorAll('.tab-button');
+            const tabContents = document.querySelectorAll('.tab-content');
 
-            // Handle Copy Case Link button
-            const copyCaseLinkBtn = document.getElementById('copy-case-link-btn');
-            if (copyCaseLinkBtn) {
-                copyCaseLinkBtn.addEventListener('click', async function() {
-                    try {
-                        const response = await fetch('{{ route('reports.batch.generate-link', ['batchId' => $batch_id]) }}', {
-                            method: 'POST',
-                            headers: {
-                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                                'Content-Type': 'application/json',
-                                'Accept': 'application/json'
-                            }
-                        });
-                        const data = await response.json();
-                        if (data.url) {
-                            const success = await window.copyToClipboard(data.url);
-                            if (success) {
-                                window.showToast('Collection link copied to clipboard');
-                            } else {
-                                window.showToast('Copied to clipboard, but your browser might restricted it. Please copy manually: ' + data.url, 'error');
-                            }
-                        }
-                    } catch (error) {
-                        window.showToast('Failed to generate collection link', 'error');
+            if (tabButtons.length > 0) {
+                tabButtons.forEach(button => {
+                    button.addEventListener('click', () => {
+                        const tab = button.dataset.tab;
+                        tabButtons.forEach(btn => btn.classList.remove('border-[#FACC15]', 'text-[#FACC15]', 'active'));
+                        button.classList.add('border-[#FACC15]', 'text-[#FACC15]', 'active');
+                        tabContents.forEach(content => content.classList.add('hidden'));
+                        const content = document.querySelector(`[data-tab-content="${tab}"]`);
+                        if (content) content.classList.remove('hidden');
+                        
+                        // Update hash without jumping
+                        history.replaceState(null, null, '#' + tab);
+                    });
+                });
+
+                // Default Tab Logic (Hash or Files)
+                const hash = window.location.hash.substring(1);
+                const defaultTab = (hash && document.querySelector(`[data-tab="${hash}"]`)) 
+                    ? document.querySelector(`[data-tab="${hash}"]`) 
+                    : tabButtons[0];
+                
+                if (defaultTab) defaultTab.click();
+            }
+
+            // 2. Chat & Modal Instantiation (Using existing classes)
+            try {
+                if (typeof CaseChatManager !== 'undefined') {
+                    window.caseChatManager = new CaseChatManager(
+                        '{{ $batch_id }}',
+                        '{{ route('case.chat.messages', $batch_id) }}',
+                        '{{ route('case.chat.send', $batch_id) }}'
+                    );
+                }
+            } catch (e) { console.error('Chat init error:', e); }
+
+            // 3. UI Toggle Logic
+            const toggleUploadBtn = document.getElementById('toggle-upload-btn');
+            const uploadSection = document.getElementById('upload-section-container');
+            const closeUploadBtn = document.getElementById('close-upload-btn');
+            const cancelUploadBtn = document.getElementById('cancel-upload-btn');
+
+            if (toggleUploadBtn && uploadSection) {
+                toggleUploadBtn.onclick = () => {
+                    uploadSection.classList.toggle('hidden');
+                    if (!uploadSection.classList.contains('hidden')) {
+                        uploadSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
                     }
-                });
+                };
+                if (closeUploadBtn) closeUploadBtn.onclick = () => uploadSection.classList.add('hidden');
+                if (cancelUploadBtn) cancelUploadBtn.onclick = () => uploadSection.classList.add('hidden');
             }
 
-            // Handle Copy Link buttons for individual files
-            document.querySelectorAll('.copy-link-btn').forEach(button => {
-                button.addEventListener('click', async function() {
-                    const reportId = this.dataset.reportId;
-                    try {
-                        const response = await fetch(`/reports/${reportId}/generate-link`, {
-                            method: 'POST',
-                            headers: {
-                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                                'Content-Type': 'application/json',
-                                'Accept': 'application/json'
-                            }
-                        });
-                        const data = await response.json();
-                        if (data.url) {
-                            const success = await window.copyToClipboard(data.url);
-                            if (success) {
-                                window.showToast('File link copied to clipboard');
-                            } else {
-                                window.showToast('Failed to copy. URL: ' + data.url, 'error');
-                            }
-                        }
-                    } catch (error) {
-                        window.showToast('Failed to generate link', 'error');
-                    }
-                });
-            });
-
-            // UI Toggle Logic
-            const toggleBtn = document.getElementById('toggle-upload-btn');
-            const closeBtn = document.getElementById('close-upload-btn');
-            const container = document.getElementById('upload-section-container');
-
-            if (toggleBtn && container) {
-                toggleBtn.addEventListener('click', () => {
-                    container.classList.remove('hidden');
-                    toggleBtn.parentElement.classList.add('hidden');
-                });
-            }
-
-            if (closeBtn && container) {
-                closeBtn.addEventListener('click', () => {
-                    container.classList.add('hidden');
-                    toggleBtn.parentElement.classList.remove('hidden');
-                });
-            }
-
-            // Handle New Files Preview with Appending & Manual Upload
+            // 4. Advanced Multi-File Upload Logic (Synced with Admin)
             const newFilesInput = document.getElementById('new_case_files');
             const fileListPreview = document.getElementById('file-list-preview');
             const uploadForm = document.getElementById('ajax-upload-form');
@@ -656,16 +868,18 @@
             let selectedFiles = [];
 
             const renderPreview = () => {
+                if (!fileListPreview) return;
                 fileListPreview.innerHTML = '';
                 if (selectedFiles.length > 0) {
                     fileListPreview.classList.remove('hidden');
-                    selectedFiles.forEach((file, index) => {
+                    selectedFiles.forEach((fileObj, index) => {
+                        const file = fileObj.file;
                         const extension = file.name.split('.').pop().toUpperCase();
                         const div = document.createElement('div');
-                        div.className = 'bg-white/5 border border-white/10 rounded-xl p-3 flex flex-col gap-2 relative overflow-hidden group/item';
+                        div.className = 'bg-white/5 border border-white/10 rounded-xl p-4 flex flex-col gap-3 relative overflow-hidden group/item';
                         div.innerHTML = `
                             <div class="flex items-center gap-3">
-                                <div class="h-8 w-8 rounded-lg bg-[#FACC15]/10 flex items-center justify-center text-[#FACC15] border border-[#FACC15]/20 text-[10px] font-black italic">
+                                <div class="h-10 w-10 rounded-xl bg-[#FACC15]/10 flex items-center justify-center text-[#FACC15] border border-[#FACC15]/20 text-[11px] font-black italic">
                                     ${extension}
                                 </div>
                                 <div class="flex-1 min-w-0">
@@ -676,14 +890,32 @@
                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
                                 </button>
                             </div>
-                            <div id="progress-container-${index}" class="w-full h-1 bg-white/5 rounded-full overflow-hidden">
+
+                            <div class="space-y-1.5">
+                                <label class="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1">Rename To (Optional)</label>
+                                <input type="text" 
+                                    class="custom-file-name-input w-full bg-black/40 border border-white/10 rounded-xl px-4 py-2 text-[11px] text-white font-bold focus:border-[#FACC15] outline-none transition-all placeholder:text-slate-700" 
+                                    placeholder="Enter filename..."
+                                    value="${fileObj.customName || ''}"
+                                    data-index="${index}">
+                            </div>
+
+                            <div id="progress-container-${index}" class="w-full h-1 bg-white/5 rounded-full overflow-hidden mt-1">
                                 <div id="progress-bar-${index}" class="h-full bg-[#FACC15] w-0 transition-all duration-300"></div>
                             </div>
                         `;
                         fileListPreview.appendChild(div);
                     });
 
-                    // Add click listeners to remove buttons
+                    // Sync custom names back to state
+                    document.querySelectorAll('.custom-file-name-input').forEach(input => {
+                        input.oninput = (e) => {
+                            const idx = parseInt(e.target.dataset.index);
+                            selectedFiles[idx].customName = e.target.value;
+                        };
+                    });
+
+                    // Remove buttons
                     document.querySelectorAll('.remove-pending-file').forEach(btn => {
                         btn.onclick = (e) => {
                             const idx = parseInt(e.currentTarget.dataset.index);
@@ -696,30 +928,32 @@
                 }
             };
 
-            if (newFilesInput && fileListPreview) {
+            if (newFilesInput) {
                 newFilesInput.addEventListener('change', function() {
-                    const newFiles = Array.from(this.files);
+                    const newFiles = Array.from(this.files).map(file => ({
+                        file: file,
+                        customName: ''
+                    }));
                     selectedFiles = [...selectedFiles, ...newFiles];
                     this.value = '';
                     renderPreview();
                 });
             }
 
-            // AJAX Upload Logic (Manual)
-            if (uploadForm) {
+            if (uploadForm && submitBtn) {
                 uploadForm.addEventListener('submit', function(e) {
                     e.preventDefault();
                     if (!selectedFiles.length) return;
 
                     const formData = new FormData();
-                    selectedFiles.forEach(file => {
-                        formData.append('files[]', file);
+                    selectedFiles.forEach((fObj) => {
+                        formData.append('files[]', fObj.file);
+                        formData.append('custom_names[]', fObj.customName || '');
                     });
 
                     const xhr = new XMLHttpRequest();
                     const originalBtnContent = submitBtn.innerHTML;
 
-                    // Update button content
                     submitBtn.innerHTML = `
                         <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
                             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -727,42 +961,162 @@
                         </svg>
                         UPLOADING...
                     `;
+                    submitBtn.disabled = true;
 
                     xhr.upload.addEventListener('progress', function(e) {
                         if (e.lengthComputable) {
-                            const percent = (e.loaded / e.total) * 100;
+                            const percent = Math.round((e.loaded / e.total) * 100);
                             selectedFiles.forEach((_, i) => {
                                 const bar = document.getElementById(`progress-bar-${i}`);
                                 if (bar) bar.style.width = percent + '%';
                             });
+                            submitBtn.innerHTML = `
+                                <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                UPLOADING ${percent}%
+                            `;
                         }
                     });
 
-                    xhr.addEventListener('load', function() {
+                    xhr.onload = function() {
                         if (xhr.status >= 200 && xhr.status < 300) {
                             window.showToast('Files uploaded successfully!');
-                            setTimeout(() => window.location.reload(), 1000);
+                            setTimeout(() => window.location.reload(), 800);
                         } else {
-                            window.showToast('Upload failed. Please try again.', 'error');
+                            window.showToast('Upload failed', 'error');
                             submitBtn.innerHTML = originalBtnContent;
                             submitBtn.disabled = false;
                         }
-                    });
+                    };
 
-                    xhr.addEventListener('error', function() {
+                    xhr.onerror = function() {
                         window.showToast('Upload failed. Network error.', 'error');
                         submitBtn.innerHTML = originalBtnContent;
                         submitBtn.disabled = false;
-                    });
+                    };
 
                     xhr.open('POST', uploadForm.action);
                     xhr.setRequestHeader('X-CSRF-TOKEN', document.querySelector('meta[name="csrf-token"]').content);
                     xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
                     xhr.send(formData);
-                    submitBtn.disabled = true;
                 });
             }
+
+            // 5. Action Handlers (Copy Link & Inline Rename)
+            document.querySelectorAll('.copy-link-btn').forEach(btn => {
+                btn.onclick = async function() {
+                    const reportId = this.dataset.reportId;
+                    try {
+                        const response = await fetch(`/reports/${reportId}/generate-link`, {
+                            method: 'POST',
+                            headers: {
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                                'Accept': 'application/json'
+                            }
+                        });
+                        const data = await response.json();
+                        if (data.url && window.copyToClipboard) {
+                            await window.copyToClipboard(data.url);
+                            window.showToast('Link copied to clipboard');
+                        }
+                    } catch (e) { window.showToast('Failed to copy link', 'error'); }
+                };
+            });
+
+            // Rename Logic
+            let currentRenameId = null;
+            const renameModal = document.getElementById('rename-modal');
+            const renameInput = document.getElementById('rename-input');
+
+            document.querySelectorAll('.rename-file-btn').forEach(btn => {
+                btn.onclick = function() {
+                    currentRenameId = this.dataset.reportId;
+                    const name = this.dataset.currentName;
+                    const lastDot = name.lastIndexOf('.');
+                    renameInput.value = lastDot !== -1 ? name.substring(0, lastDot) : name;
+                    renameModal.classList.remove('hidden');
+                    renameInput.focus();
+                };
+            });
+
+            if (renameModal) {
+                renameModal.querySelectorAll('.cancel-rename').forEach(btn => {
+                    btn.onclick = () => renameModal.classList.add('hidden');
+                });
+
+                const confirmBtn = renameModal.querySelector('.confirm-rename');
+                if (confirmBtn) {
+                    confirmBtn.onclick = async () => {
+                        const name = renameInput.value.trim();
+                        if (!name || !currentRenameId) return;
+
+                        try {
+                            const response = await fetch(`/case-files/${currentRenameId}/rename`, {
+                                method: 'PATCH',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                                    'Accept': 'application/json'
+                                },
+                                body: JSON.stringify({ name })
+                            });
+                            const data = await response.json();
+                            if (data.success) {
+                                window.showToast('File renamed');
+                                window.location.reload();
+                            } else {
+                                window.showToast(data.message, 'error');
+                            }
+                        } catch (e) { window.showToast('Rename failed', 'error'); }
+                    };
+                }
+            }
+            // 6. Folder Toggle Logic
+            window.toggleBHFolders = function(type) {
+                const content = document.getElementById(`folder-content-${type}`);
+                const chevron = document.getElementById(`chevron-${type}`);
+                
+                if (!content) return;
+
+                const isHidden = content.classList.contains('hidden');
+                
+                // Toggle this folder
+                if (isHidden) {
+                    content.classList.remove('hidden');
+                    if (chevron) chevron.classList.add('rotate-180');
+                    
+                    // Optional: Smoothly scroll to the folder
+                    setTimeout(() => {
+                        content.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    }, 50);
+                } else {
+                    content.classList.add('hidden');
+                    if (chevron) chevron.classList.remove('rotate-180');
+                }
+            };
         });
     </script>
-@endsection
 
+    <!-- Rename Modal Template -->
+    <div id="rename-modal" class="hidden fixed inset-0 z-[10000] flex items-center justify-center p-4 text-left">
+        <div class="absolute inset-0 bg-black/80 backdrop-blur-sm cancel-rename"></div>
+        <div class="relative bg-[#111111] rounded-[24px] border border-white/10 p-8 max-w-md w-full shadow-2xl animate-in fade-in zoom-in duration-200">
+            <h4 class="text-xl font-black text-white mb-2 uppercase tracking-tight">Rename File</h4>
+            <p class="text-[11px] text-slate-500 font-bold tracking-widest uppercase mb-6">EXTENSION WILL BE PRESERVED AUTOMATICALLY</p>
+            
+            <div class="space-y-4">
+                <div class="space-y-2">
+                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">NEW FILENAME</label>
+                    <input type="text" id="rename-input" class="w-full px-5 py-4 bg-black border border-white/10 rounded-2xl text-white font-bold focus:border-[#FACC15] focus:outline-none transition-all shadow-inner">
+                </div>
+
+                <div class="flex gap-3 pt-4">
+                    <button type="button" class="flex-1 py-4 rounded-2xl bg-white/5 text-white text-[12px] font-black uppercase tracking-widest hover:bg-white/10 transition-all cancel-rename">Cancel</button>
+                    <button type="button" class="flex-1 py-4 rounded-2xl bg-[#FACC15] text-black text-[12px] font-black uppercase tracking-widest hover:bg-[#EAB308] transition-all shadow-[0_0_20px_rgba(250,204,21,0.2)] confirm-rename">Save Changes</button>
+                </div>
+            </div>
+        </div>
+    </div>
+@endsection

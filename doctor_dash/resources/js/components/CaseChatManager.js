@@ -1,274 +1,374 @@
-/**
- * CaseChatManager Component
- * 
- * Manages case-specific chat functionality including message display,
- * sending, and real-time polling for new messages.
- * 
- * Requirements: 6.1, 6.3, 6.4, 7.1, 7.2, 7.3, 7.4, 7.5, 7.7, 9.1, 9.4, 9.5
- */
+// resources/js/components/CaseChatManager.js
 export default class CaseChatManager {
-    /**
-     * Initialize the case chat manager
-     * 
-     * @param {string} batchId - The batch ID of the case
-     * @param {string} messagesUrl - URL to fetch messages
-     * @param {string} sendUrl - URL to send messages
-     */
     constructor(batchId, messagesUrl, sendUrl) {
         this.batchId = batchId;
         this.messagesUrl = messagesUrl;
         this.sendUrl = sendUrl;
         this.pollingInterval = null;
-        this.lastMessageId = 0;
+        this.pendingFiles = []; // Array of File objects
+        this.isProcessing = false;
+        this.pendingMessages = new Map(); // Track uploading messages
+        this.messagesCache = []; // Cache for persistency during uploads
+        
+        console.log('CaseChatManager: Final Polish & UI Refinement...', { batchId });
+
         this.init();
+        this.initLightbox();
     }
-    
-    /**
-     * Initialize the component by binding events and loading initial messages
-     */
+
     init() {
         this.messageContainer = document.getElementById('case-chat-messages');
         this.messageForm = document.getElementById('case-chat-form');
         this.messageInput = document.getElementById('case-chat-input');
-        
-        console.log('CaseChatManager initialized:', {
-            container: !!this.messageContainer,
-            form: !!this.messageForm,
-            input: !!this.messageInput,
-            batchId: this.batchId,
-            messagesUrl: this.messagesUrl,
-            sendUrl: this.sendUrl
-        });
-        
+        this.fileInput = document.getElementById('case-chat-file');
+        this.attachButton = document.getElementById('case-chat-attach-btn');
+        this.filePreview = document.getElementById('case-chat-file-preview');
+
         if (!this.messageContainer || !this.messageForm || !this.messageInput) {
-            console.error('CaseChatManager: Required elements not found');
+            console.error('CaseChatManager: Required elements NOT found.');
             return;
         }
+
+        // Fresh clones to avoid double listeners
+        const newForm = this.messageForm.cloneNode(true);
+        this.messageForm.parentNode.replaceChild(newForm, this.messageForm);
+        this.messageForm = newForm;
         
-        this.messageForm.addEventListener('submit', (e) => this.handleSend(e));
+        this.messageInput = document.getElementById('case-chat-input');
+        this.attachButton = document.getElementById('case-chat-attach-btn');
+        this.fileInput = document.getElementById('case-chat-file');
+        this.filePreview = document.getElementById('case-chat-file-preview');
+
+        this.messageForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            this.handleSend();
+        });
 
         this.messageInput.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
-                this.handleSend(e);
+                this.handleSend();
             }
         });
-        
+
+        if (this.attachButton && this.fileInput) {
+            this.attachButton.onclick = (e) => { e.preventDefault(); this.fileInput.click(); };
+            this.fileInput.onchange = (e) => this.handleFileSelect(e);
+        }
+
         this.loadMessages();
-        this.startPolling();
+        this.setupPolling();
     }
-    
-    /**
-     * Load all messages from the server
-     */
+
+    initLightbox() {
+        this.lightbox = document.getElementById('chat-lightbox');
+        this.lightboxImg = document.getElementById('lightbox-img');
+        this.closeLightboxBtn = document.getElementById('close-lightbox');
+
+        if (this.closeLightboxBtn) {
+            this.closeLightboxBtn.onclick = () => this.closeLightbox();
+        }
+        if (this.lightbox) {
+            this.lightbox.onclick = (e) => { if (e.target === this.lightbox) this.closeLightbox(); };
+        }
+    }
+
+    openLightbox(src) {
+        if (!this.lightbox || !this.lightboxImg) return;
+        this.lightboxImg.src = src;
+        this.lightbox.classList.remove('hidden');
+        setTimeout(() => this.lightbox.classList.add('opacity-100'), 10);
+    }
+
+    closeLightbox() {
+        if (!this.lightbox) return;
+        this.lightbox.classList.remove('opacity-100');
+        setTimeout(() => {
+            this.lightbox.classList.add('hidden');
+            this.lightboxImg.src = '';
+        }, 300);
+    }
+
+    setupPolling() {
+        if (this.pollingInterval) clearInterval(this.pollingInterval);
+        this.pollingInterval = setInterval(() => this.loadMessages(), 5000);
+    }
+
     async loadMessages() {
+        if (!this.messageContainer) return;
         try {
-            const response = await fetch(this.messagesUrl, {
-                headers: {
-                    'Accept': 'application/json'
-                }
-            });
-            
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            
+            const response = await fetch(this.messagesUrl, { headers: { 'Accept': 'application/json' } });
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
             const data = await response.json();
-            
-            if (data.error) {
-                this.showError('Failed to load messages: ' + data.error);
-                return;
-            }
-            
             if (data.messages) {
-                this.renderMessages(data.messages);
-                if (data.messages.length > 0) {
-                    this.lastMessageId = data.messages[data.messages.length - 1].id;
+                for (const [tempId, pending] of this.pendingMessages) {
+                    const exists = data.messages.some(m => m.body === pending.body && (m.file_name === pending.file_name || m.tempId === tempId));
+                    if (exists) this.pendingMessages.delete(tempId);
                 }
+                this.renderMessages(data.messages);
             }
-        } catch (error) {
-            console.error('Failed to load messages:', error);
-            this.showError('Unable to load messages. Please refresh the page.');
-        }
+        } catch (error) { console.warn('Polling error', error); }
     }
-    
-    /**
-     * Handle message form submission
-     * 
-     * @param {Event} e - The form submit event
-     */
-    async handleSend(e) {
-        e.preventDefault();
-        
-        console.log('handleSend called');
-        
-        const message = this.messageInput.value.trim();
-        console.log('Message to send:', message);
-        
-        if (!message) {
-            console.log('Empty message, returning');
-            return;
-        }
-        
-        // Disable input while sending
-        const originalValue = this.messageInput.value;
-        this.messageInput.disabled = true;
-        
-        try {
-            const csrfToken = document.querySelector('meta[name="csrf-token"]');
-            if (!csrfToken) {
-                throw new Error('CSRF token not found');
-            }
-            
-            console.log('Sending to:', this.sendUrl);
-            console.log('Payload:', { message });
-            
-            const response = await fetch(this.sendUrl, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                    'X-CSRF-TOKEN': csrfToken.content
-                },
-                body: JSON.stringify({ message })
-            });
-            
-            console.log('Response status:', response.status);
-            const data = await response.json();
-            console.log('Response data:', data);
-            
-            if (!response.ok) {
-                this.showError(data.error || `HTTP error! status: ${response.status}`);
-                this.messageInput.value = originalValue;
-            } else if (data.ok) {
-                this.messageInput.value = '';
-                await this.loadMessages();
-            } else {
-                this.showError('Failed to send message. Please try again.');
-                this.messageInput.value = originalValue;
-            }
-        } catch (error) {
-            console.error('Failed to send message:', error);
-            this.showError('Unable to send message: ' + error.message);
-            this.messageInput.value = originalValue;
-        } finally {
-            this.messageInput.disabled = false;
-            this.messageInput.focus();
-        }
-    }
-    
-    /**
-     * Render all messages in the message container
-     * 
-     * @param {Array} messages - Array of message objects
-     */
+
     renderMessages(messages) {
-        this.messageContainer.innerHTML = '';
-        messages.forEach(msg => {
-            const messageEl = this.createMessageElement(msg);
-            this.messageContainer.appendChild(messageEl);
-        });
-        this.scrollToBottom();
-    }
-    
-    /**
-     * Create a DOM element for a single message
-     * 
-     * @param {Object} message - The message object
-     * @returns {HTMLElement} The message element
-     */
-    createMessageElement(message) {
-        const div = document.createElement('div');
-        const currentUserId = document.querySelector('meta[name="user-id"]')?.content;
-        const isSelf = message.is_self !== undefined ? message.is_self : (String(message.sender_id) === String(currentUserId));
+        if (!this.messageContainer) return;
+        if (messages && messages.length > 0) this.messagesCache = messages;
         
-        div.className = `flex ${isSelf ? 'justify-end' : 'justify-start'}`;
-        div.innerHTML = `
-            <div class="max-w-[75%] ${isSelf ? 'bg-[#FACC15] text-black' : 'bg-[#111111] border border-white/10 text-white'} rounded-2xl px-4 py-2.5 shadow-sm">
-                ${!isSelf ? `<p class="text-xs font-bold text-[#FACC15] mb-1">${message.sender_name}</p>` : ''}
-                <p class="text-sm leading-relaxed whitespace-pre-wrap break-words">${this.linkify(message.body)}</p>
-                <p class="text-[10px] ${isSelf ? 'text-black/60' : 'text-gray-500'} mt-1 font-medium">${message.created_at_label || message.created_at}</p>
+        const isNearBottom = this.messageContainer.scrollHeight - this.messageContainer.scrollTop <= this.messageContainer.clientHeight + 150;
+        const currentUserId = parseInt(document.querySelector('meta[name="user-id"]')?.content || 0);
+        
+        let html = this.messagesCache.map(msg => this.createMessageHtml(msg, msg.sender_id === currentUserId)).join('');
+        for (const [tempId, pending] of this.pendingMessages) {
+            html += this.createMessageHtml(pending, true, true, tempId);
+        }
+        
+        this.messageContainer.innerHTML = html;
+        if (isNearBottom) this.scrollToBottom();
+    }
+
+    createMessageHtml(message, isSelf, isOptimistic = false, progressId = null) {
+        let attachmentHtml = '';
+        const fileUrl = isOptimistic ? (message.previewUrl || '') : (message.file_url || (message.file_path ? `/storage/${message.file_path}` : ''));
+        const isImage = message.mime_type?.startsWith('image/') || message.isImage;
+        const fileName = message.file_name || '';
+        const fileSize = message.file_size_formatted || (message.size ? (message.size / 1024).toFixed(1) + ' KB' : '');
+        
+        if (fileUrl || isOptimistic) {
+            if (isImage) {
+                attachmentHtml = `
+                    <div class="mt-2 rounded-lg overflow-hidden relative group max-w-full bg-black/10">
+                        <img src="${fileUrl}" class="max-h-80 w-full object-cover transition-opacity ${!isOptimistic ? 'cursor-pointer active:opacity-90' : 'opacity-60'}" 
+                             ${!isOptimistic ? `onclick="window.CaseChatManager.openLightboxProxy('${fileUrl}')"` : ''}>
+                        ${isOptimistic ? `
+                            <div class="absolute inset-0 flex items-center justify-center z-10" id="prog-wrap-${progressId}">
+                                <div class="relative w-12 h-12 flex items-center justify-center">
+                                    <svg class="w-full h-full -rotate-90">
+                                        <circle class="text-white/20" stroke-width="2" stroke="currentColor" fill="transparent" r="22" cx="24" cy="24" />
+                                        <circle class="text-white transition-all duration-300" id="prog-circle-${progressId}" stroke-width="2" stroke-dasharray="138.2" stroke-dashoffset="138.2" stroke-linecap="round" stroke="currentColor" fill="transparent" r="22" cx="24" cy="24" />
+                                    </svg>
+                                    <span class="absolute text-[10px] text-white font-black" id="prog-text-${progressId}">0%</span>
+                                </div>
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            } else if (fileName) {
+                const isPdf = fileName.toLowerCase().endsWith('.pdf');
+                attachmentHtml = `
+                    <div class="mt-2 p-0 rounded-xl overflow-hidden border border-white/5 flex flex-col ${isSelf ? 'bg-black/20' : 'bg-white/5'}">
+                        <div class="p-4 flex items-center gap-4">
+                            <div class="w-12 h-12 shrink-0 relative flex items-center justify-center ${isPdf ? 'text-red-500' : 'text-[#FACC15]'}">
+                                <svg class="w-full h-full" fill="currentColor" viewBox="0 0 24 24"><path d="M14,2H6A2,2,0,0,0,4,4V20a2,2,0,0,0,2,2H18a2,2,0,0,0,2-2V8Zm4,18H6V4h7V9h5Z"/></svg>
+                                ${isPdf ? '<span class="absolute bottom-2 left-1/2 -translate-x-1/2 text-[7px] font-black text-white uppercase">PDF</span>' : ''}
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-[14px] font-bold truncate ${isSelf ? 'text-black' : 'text-white'}">${fileName}</p>
+                                <p class="text-[10px] opacity-60 font-medium">${fileSize || 'Document'}</p>
+                            </div>
+                            ${isOptimistic ? `
+                            <div class="w-8 h-8 relative flex items-center justify-center" id="prog-wrap-${progressId}">
+                                <svg class="w-full h-full -rotate-90 absolute">
+                                    <circle class="text-black/10" stroke-width="2" stroke="currentColor" fill="transparent" r="14" cx="16" cy="16" />
+                                    <circle class="text-${isSelf ? 'black' : '[#FACC15]'} transition-all duration-300" id="prog-circle-${progressId}" stroke-width="2" stroke-dasharray="87.9" stroke-dashoffset="87.9" stroke-linecap="round" stroke="currentColor" fill="transparent" r="14" cx="16" cy="16" />
+                                </svg>
+                                <span class="text-[7px] font-black" id="prog-text-${progressId}">0%</span>
+                            </div>
+                            ` : ''}
+                        </div>
+                        ${!isOptimistic ? `
+                        <div class="flex border-t border-white/5 bg-black/5">
+                            <a href="${fileUrl}" target="_blank" class="flex-1 py-2 text-center text-[11px] font-black hover:bg-black/5 transition-colors ${isSelf ? 'text-black/80' : 'text-[#FACC15]'}">OPEN</a>
+                            <div class="w-[1px] bg-white/5"></div>
+                            <a href="${fileUrl}" download="${fileName}" class="flex-1 py-2 text-center text-[11px] font-black hover:bg-black/5 transition-colors ${isSelf ? 'text-black/80' : 'text-[#FACC15]'}">SAVE AS...</a>
+                        </div>
+                        ` : `
+                        <div class="py-2 px-3 bg-black/5 text-[11px] font-bold text-center opacity-50" id="prog-label-${progressId}">Uploading...</div>
+                        `}
+                    </div>
+                `;
+            }
+        }
+
+        const alignClass = isSelf ? 'justify-end' : 'justify-start';
+        const bubbleClass = isSelf ? 'message-self' : 'message-other';
+        const tailClass = isSelf ? 'message-tail-self' : 'message-tail-other';
+
+        return `
+            <div class="flex ${alignClass} mb-2 w-full px-4" ${isOptimistic ? `id="opt-msg-${progressId}" data-optimistic="true"` : ''}>
+                <div class="message-bubble ${bubbleClass} shadow-md border border-black/5">
+                    <div class="${tailClass}"></div>
+                    ${!isSelf ? `<p class="text-[11px] font-black text-[#FACC15] mb-1.5 uppercase tracking-wider">${message.sender_name || 'ADMIN'}</p>` : ''}
+                    ${message.body ? `<p class="message-content text-[15px] leading-relaxed whitespace-pre-wrap break-words py-1 ${isSelf ? 'font-medium' : ''}">${message.body}</p>` : ''}
+                    ${attachmentHtml}
+                    <div class="message-info flex items-center justify-end gap-1 mt-1">
+                        <span class="text-[10px] opacity-60 font-medium">
+                            ${message.created_at_label || 'Just now'}
+                        </span>
+                        ${isSelf && !isOptimistic ? `
+                            <svg class="w-4 h-4 text-black/40" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                            </svg>
+                        ` : ''}
+                    </div>
+                </div>
             </div>
         `;
-        return div;
     }
-    
-    /**
-     * Convert URLs in text to clickable links
-     * 
-     * @param {string} text - The text to linkify
-     * @returns {string} The text with URLs converted to anchor tags
-     */
-    linkify(text) {
-        const urlRegex = /(https?:\/\/[^\s]+)/g;
-        return text.replace(urlRegex, '<a href="$1" target="_blank">$1</a>');
+
+    handleFileSelect(e) {
+        const files = Array.from(e.target.files);
+        if (files.length === 0) return;
+
+        this.pendingFiles = [...this.pendingFiles, ...files];
+        this.renderFilePreview();
+        e.target.value = ''; // Reset input
     }
-    
-    /**
-     * Scroll the message container to the bottom
-     */
+
+    renderFilePreview() {
+        if (!this.filePreview) return;
+        if (this.pendingFiles.length === 0) {
+            this.filePreview.style.display = 'none';
+            this.filePreview.innerHTML = '';
+            return;
+        }
+
+        this.filePreview.style.display = 'block';
+        this.filePreview.innerHTML = `
+            <div class="flex flex-wrap gap-3 p-4 bg-black/60 rounded-2xl border border-white/10 shadow-2xl backdrop-blur-md">
+                ${this.pendingFiles.map((file, i) => {
+                    const isImage = file.type.startsWith('image/');
+                    const url = isImage ? URL.createObjectURL(file) : null;
+                    return `
+                        <div class="relative w-20 h-20 rounded-xl overflow-hidden border border-white/20 bg-white/5 group shadow-lg">
+                            ${isImage ? `<img src="${url}" class="w-full h-full object-cover">` : `
+                                <div class="w-full h-full flex flex-col items-center justify-center p-2">
+                                    <svg class="w-8 h-8 text-[#FACC15]" fill="currentColor" viewBox="0 0 24 24"><path d="M14,2H6A2,2,0,0,0,4,4V20a2,2,0,0,0,2,2H18a2,2,0,0,0,2-2V8Zm4,18H6V4h7V9h5Z"/></svg>
+                                    <span class="text-[8px] text-white/70 truncate w-full text-center mt-1 font-bold">${file.name}</span>
+                                </div>
+                            `}
+                            <button onclick="window.caseChatManager.removePendingFile(${i})" class="absolute top-0 right-0 p-1 bg-red-500 text-white rounded-bl-lg opacity-0 group-hover:opacity-100 transition-all hover:bg-red-600">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
+                            </button>
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+        `;
+    }
+
+    removePendingFile(index) {
+        this.pendingFiles.splice(index, 1);
+        this.renderFilePreview();
+    }
+
+    handleSend() {
+        const text = this.messageInput.value.trim();
+        const hasFiles = this.pendingFiles.length > 0;
+        
+        if (!text && !hasFiles) return;
+
+        const filesToSend = [...this.pendingFiles];
+        const sharedText = text;
+
+        this.messageInput.value = '';
+        this.pendingFiles = [];
+        this.renderFilePreview();
+
+        if (filesToSend.length > 0) {
+            for (let i = 0; i < filesToSend.length; i++) {
+                const currentText = (i === 0) ? sharedText : ''; 
+                this.sendSingleRequestWithProgress(currentText, filesToSend[i], filesToSend[i].name);
+            }
+        } else {
+            this.sendSingleRequestWithProgress(sharedText, null);
+        }
+    }
+
+    sendSingleRequestWithProgress(text, file, customName = null) {
+        const tempId = Math.random().toString(36).substr(2, 9);
+        const isImage = file && file.type.startsWith('image/');
+        const previewUrl = isImage ? URL.createObjectURL(file) : null;
+
+        const messageData = {
+            sender_name: 'You',
+            body: text,
+            file_name: customName || (file ? file.name : null),
+            mime_type: file ? file.type : null,
+            size: file ? file.size : 0,
+            isImage: isImage,
+            previewUrl: previewUrl,
+            sender_id: document.querySelector('meta[name="user-id"]')?.content || 0
+        };
+        
+        this.pendingMessages.set(tempId, messageData);
+        this.renderMessages();
+        
+        const formData = new FormData();
+        if (text) formData.append('message', text);
+        if (file) {
+            formData.append('file', file, customName || file.name);
+        }
+
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', this.sendUrl);
+        xhr.setRequestHeader('X-CSRF-TOKEN', document.querySelector('meta[name="csrf-token"]').content);
+        xhr.setRequestHeader('Accept', 'application/json');
+
+        xhr.upload.onprogress = (e) => {
+            if (e.lengthComputable) {
+                const percent = Math.round((e.loaded / e.total) * 100);
+                this.updateUploadProgress(tempId, percent, isImage);
+            }
+        };
+
+        xhr.onload = () => {
+            if (xhr.status >= 200 && xhr.status < 300) {
+                this.pendingMessages.delete(tempId);
+                this.loadMessages();
+            } else {
+                this.markMessageFailed(tempId);
+            }
+        };
+
+        xhr.onerror = () => this.markMessageFailed(tempId);
+        xhr.send(formData);
+    }
+
+    updateUploadProgress(tempId, percent, isImage) {
+        const text = document.getElementById(`prog-text-${tempId}`);
+        const circle = document.getElementById(`prog-circle-${tempId}`);
+        if (text) text.textContent = `${percent}%`;
+        if (circle) {
+            const radius = circle.getAttribute('r');
+            const circumference = 2 * Math.PI * radius;
+            const offset = circumference - (percent / 100 * circumference);
+            circle.style.strokeDashoffset = offset;
+        }
+        if (percent === 100) {
+            const label = document.getElementById(`prog-label-${tempId}`);
+            if (label) label.textContent = 'Processing...';
+        }
+    }
+
+    markMessageFailed(tempId) {
+        const msg = document.getElementById(`opt-msg-${tempId}`);
+        if (msg) {
+            msg.querySelector('.message-bubble').classList.add('!bg-red-900/40', 'border-red-500');
+            const wrap = document.getElementById(`prog-wrap-${tempId}`);
+            if (wrap) wrap.remove();
+        }
+    }
+
     scrollToBottom() {
         if (this.messageContainer) {
             this.messageContainer.scrollTop = this.messageContainer.scrollHeight;
         }
     }
-    
-    /**
-     * Start polling for new messages every 5 seconds
-     */
-    startPolling() {
-        if (this.pollingInterval) return;
-        this.pollingInterval = setInterval(() => this.pollNewMessages(), 5000);
-    }
-    
-    /**
-     * Stop polling for new messages
-     */
-    stopPolling() {
-        if (this.pollingInterval) {
-            clearInterval(this.pollingInterval);
-            this.pollingInterval = null;
-        }
-    }
-    
-    /**
-     * Poll for new messages since the last message ID
-     */
-    async pollNewMessages() {
-        try {
-            const response = await fetch(`${this.messagesUrl}?since=${this.lastMessageId}`, {
-                headers: {
-                    'Accept': 'application/json'
-                }
-            });
-            const data = await response.json();
-            
-            if (data.messages && data.messages.length > 0) {
-                data.messages.forEach(msg => {
-                    const messageEl = this.createMessageElement(msg);
-                    this.messageContainer.appendChild(messageEl);
-                });
-                this.lastMessageId = data.messages[data.messages.length - 1].id;
-                this.scrollToBottom();
-            }
-        } catch (error) {
-            console.error('Polling failed:', error);
-        }
-    }
-    
-    /**
-     * Show error message to user
-     * 
-     * @param {string} message - The error message to display
-     */
-    showError(message) {
-        const errorDiv = document.createElement('div');
-        errorDiv.className = 'bg-red-500/10 border border-red-500/20 rounded-xl p-4 mb-4 text-red-400 text-sm';
-        errorDiv.textContent = message;
-        
-        if (this.messageContainer) {
-            this.messageContainer.insertBefore(errorDiv, this.messageContainer.firstChild);
-            setTimeout(() => errorDiv.remove(), 5000);
+
+    static openLightboxProxy(src) {
+        if (window.caseChatManager) {
+            window.caseChatManager.openLightbox(src);
         }
     }
 }
+window.CaseChatManager = CaseChatManager;

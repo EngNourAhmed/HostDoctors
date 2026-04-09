@@ -327,19 +327,20 @@
                                 }])
                                 ->get();
 
-                            $__unreadUserMessages = $__caseConversations
-                                ->filter(function ($conversation) use ($__currentUser) {
-                                    $last = $conversation->messages->first();
-                                    return $last && $last->sender_id !== $__currentUser->id;
-                                })
+                             $__unreadUserMessages = $__currentUser->unreadNotifications()
+                                ->where('data->type', 'case_message_received')
                                 ->count();
                                 
-                            // 2. Filter Notifications for "Case Status Changing" only
+                            // 2. Filter Notifications for other Case activities
                             $__unreadNotificationsCount = $__currentUser->unreadNotifications()
-                                ->where(function($q) {
-                                    $q->where('data->type', 'status_updated')
-                                      ->orWhere('data->type', 'case_status_change');
-                                })
+                                ->whereIn('data->type', [
+                                    'status_update', 
+                                    'case_created', 
+                                    'case_updated', 
+                                    'case_file_added', 
+                                    'case_response_submitted', 
+                                    'case_reply_case_submitted'
+                                ])
                                 ->count();
                         @endphp
 
@@ -597,7 +598,7 @@
     <!-- Fixed Floating Buttons -->
     @auth
                 <!-- Case Chat Notifications Dropdown -->
-        <div id="bh-messages-dropdown" class="fixed top-16 right-32 z-[60] w-[400px] max-h-[600px] bg-[#0c0c0c] rounded-2xl border border-white/10 shadow-2xl hidden flex-col overflow-hidden transform origin-top-right transition-all duration-200 scale-95 opacity-0">
+        <div id="bh-messages-dropdown" class="fixed top-16 right-32 z-[60] w-[400px] max-h-[80vh] bg-[#0c0c0c] rounded-2xl border border-white/10 shadow-2xl hidden flex-col overflow-hidden transform origin-top-right transition-all duration-200 scale-95 opacity-0">
             <div class="p-5 border-b border-white/10">
                 <div class="flex items-center justify-between mb-4">
                     <h3 class="text-2xl font-bold text-white">Case Messages</h3>
@@ -605,7 +606,7 @@
                 <input type="text" id="bh-search-chats" placeholder="Search messages..." class="w-full px-4 py-2.5 bg-[#111111] border border-white/10 rounded-xl text-white placeholder-gray-500 text-sm focus:outline-none focus:border-[#FACC15]">
             </div>
             
-            <div id="bh-conversations-list" class="flex-1 overflow-y-auto">
+            <div id="bh-conversations-list" class="flex-1 overflow-y-auto" style="max-height: calc(80vh - 100px);">
                 @php
                     $__userChatNotifications = auth()->user()->notifications()
                         ->where('data->type', 'case_message_received')
@@ -613,31 +614,35 @@
                         ->take(15)->get();
                 @endphp
                 @forelse($__userChatNotifications as $notification)
-                    <div class="flex items-start gap-3 p-4 hover:bg-white/5 transition-colors border-b border-white/5 {{ $notification->read_at ? '' : 'bg-[#FACC15]/5' }}">
-                        <div class="shrink-0">
-                            <div class="h-10 w-10 rounded-full bg-gradient-to-br from-[#FACC15] to-[#F59E0B] flex items-center justify-center text-black font-bold text-sm">
-                                {{ substr($notification->data['title'] ?? 'N', 0, 1) }}
+                        @php
+                            $targetUrl = isset($notification->data['batch_id']) ? route('user.reports.show', $notification->data['batch_id']) . '#chat' : '#';
+                        @endphp
+                        <div class="group flex items-start gap-3 p-4 hover:bg-white/5 transition-colors border-b border-white/5 cursor-pointer {{ $notification->read_at ? '' : 'bg-[#FACC15]/5 notification-unread' }}" 
+                             onclick="markReadAndRedirect('{{ $notification->id }}', '{{ $targetUrl }}', event, 'message')">
+                            <div class="shrink-0">
+                                <div class="h-10 w-10 rounded-full bg-gradient-to-br from-[#FACC15] to-[#F59E0B] flex items-center justify-center text-black font-bold text-sm">
+                                    {{ substr($notification->data['title'] ?? 'N', 0, 1) }}
+                                </div>
                             </div>
-                        </div>
-                        <div class="flex-1 min-w-0">
-                            <div class="flex items-center justify-between gap-2">
-                                <p class="text-xs font-bold text-white">{{ $notification->data['title'] ?? 'New Message' }}</p>
-                                <p class="text-[10px] text-gray-500">{{ $notification->created_at->diffForHumans() }}</p>
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center justify-between gap-2">
+                                    <p class="text-xs font-bold text-white">{{ $notification->data['title'] ?? 'New Message' }}</p>
+                                    <p class="text-[10px] text-gray-500">{{ $notification->created_at->diffForHumans() }}</p>
+                                </div>
+                                <p class="text-xs text-gray-300 mt-1 line-clamp-2 leading-relaxed">{{ $notification->data['message'] ?? '' }}</p>
+                                @if(isset($notification->data['batch_id']))
+                                    <span class="inline-flex items-center gap-1 mt-2 text-[10px] text-[#FACC15] group-hover:text-white transition-colors">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                                        </svg>
+                                        Go to Chat
+                                    </span>
+                                @endif
                             </div>
-                            <p class="text-xs text-gray-300 mt-1 line-clamp-2 leading-relaxed">{{ $notification->data['message'] ?? '' }}</p>
-                            @if(isset($notification->data['batch_id']))
-                                <a href="{{ route('user.reports.show', $notification->data['batch_id']) }}?tab=chat" class="inline-flex items-center gap-1 mt-2 text-[10px] text-[#FACC15] hover:text-white transition-colors">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                                    </svg>
-                                    Go to Chat
-                                </a>
+                            @if(!$notification->read_at)
+                                <div class="h-1.5 w-1.5 rounded-full bg-[#FACC15] shrink-0 mt-1 notification-dot"></div>
                             @endif
                         </div>
-                        @if(!$notification->read_at)
-                            <div class="h-1.5 w-1.5 rounded-full bg-[#FACC15] shrink-0 mt-1"></div>
-                        @endif
-                    </div>
                 @empty
                     <div class="text-center text-gray-400 text-sm py-12">No chat notifications yet</div>
                 @endforelse
@@ -645,7 +650,7 @@
         </div>
 
         <!-- Notifications Dropdown -->
-        <div id="bh-notifications-dropdown" class="fixed top-16 right-20 z-[60] w-[360px] max-h-[400px] bg-[#0c0c0c] rounded-xl border border-white/10 shadow-2xl hidden flex-col transform origin-top-right transition-all duration-200 scale-95 opacity-0">
+        <div id="bh-notifications-dropdown" class="fixed top-16 right-20 z-[60] w-[360px] max-h-[80vh] bg-[#0c0c0c] rounded-xl border border-white/10 shadow-2xl hidden flex-col overflow-hidden transform origin-top-right transition-all duration-200 scale-95 opacity-0">
             <div class="p-4 border-b border-white/10">
                 <div class="flex items-center justify-between mb-3">
                     <h3 class="text-xl font-bold text-white">Notifications</h3>
@@ -682,7 +687,7 @@
                 </div>
             </div>
             
-            <div id="notifications-list" class="flex-1 overflow-y-auto" style="max-height: calc(400px - 120px);">
+            <div id="notifications-list" class="flex-1 overflow-y-auto" style="max-height: calc(80vh - 120px);">
                 @php
                     $__userStatusNotifications = auth()->user()->notifications()
                         ->where(function($q) {
@@ -694,7 +699,10 @@
                         ->take(15)->get();
                 @endphp
                 @forelse($__userStatusNotifications as $notification)
-                    <div class="notification-item flex items-start gap-3 p-3 hover:bg-white/5 transition-colors border-b border-white/5 {{ $notification->read_at ? '' : 'bg-[#FACC15]/5' }}" data-read="{{ $notification->read_at ? 'true' : 'false' }}">
+                    @php $_linkId = $notification->data['batch_id'] ?? $notification->data['report_id'] ?? null; @endphp
+                    <div class="group notification-item flex items-start gap-3 p-3 hover:bg-white/5 transition-colors border-b border-white/5 cursor-pointer {{ $notification->read_at ? '' : 'bg-[#FACC15]/5 notification-unread' }}" 
+                         data-read="{{ $notification->read_at ? 'true' : 'false' }}"
+                         onclick="markReadAndRedirect('{{ $notification->id }}', '{{ $_linkId ? route('user.reports.show', $_linkId) : '#' }}', event, 'notification')">
                         <div class="h-10 w-10 rounded-full bg-gradient-to-br from-[#FACC15] to-[#F59E0B] flex items-center justify-center text-black shrink-0">
                             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/>
@@ -706,20 +714,19 @@
                                 <p class="text-[10px] text-[#FACC15]">{{ $notification->created_at->diffForHumans() }}</p>
                             </div>
                             <p class="text-xs text-white leading-relaxed mt-0.5 {{ !$notification->read_at ? 'font-medium' : 'text-gray-300' }}">{{ $notification->data['message'] ?? 'Status changed.' }}</p>
-                            @php $_linkId = $notification->data['batch_id'] ?? $notification->data['report_id'] ?? null; @endphp
                             @if($_linkId)
-                                <a href="{{ route('user.reports.show', $_linkId) }}" class="inline-flex items-center gap-1 mt-1 text-[10px] text-[#FACC15] hover:text-white transition-colors">
+                                <span class="inline-flex items-center gap-1 mt-1 text-[10px] text-[#FACC15] group-hover:text-white transition-colors">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                         <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
                                         <polyline points="15,3 21,3 21,9"/>
                                         <line x1="10" y1="14" x2="21" y2="3"/>
                                     </svg>
                                     View Case
-                                </a>
+                                </span>
                             @endif
                         </div>
                         @if(!$notification->read_at)
-                            <div class="h-1.5 w-1.5 rounded-full bg-[#FACC15] shrink-0 mt-1"></div>
+                            <div class="h-1.5 w-1.5 rounded-full bg-[#FACC15] shrink-0 mt-1 notification-dot"></div>
                         @endif
                     </div>
                 @empty
@@ -1022,18 +1029,68 @@
                     });
                     
                     if (response.ok) {
-                        document.querySelectorAll('.notification-item').forEach(item => {
+                        document.querySelectorAll('.notification-item, .notification-unread').forEach(item => {
                             item.setAttribute('data-read', 'true');
-                            item.classList.remove('bg-[#FACC15]/5');
-                            const dot = item.querySelector('.bg-\\[\\#FACC15\\]');
-                            if (dot && dot.classList.contains('h-1.5')) dot.remove();
+                            item.classList.remove('bg-[#FACC15]/5', 'notification-unread');
+                            const dot = item.querySelector('.bg-\\[\\#FACC15\\], .notification-dot');
+                            if (dot && dot.classList.contains('rounded-full')) dot.remove();
                         });
-                        const badge = document.querySelector('#bh-notifications-btn-header .absolute');
-                        if (badge) badge.remove();
+                        const badgeNotifications = document.querySelector('#bh-notifications-btn-header .absolute');
+                        if (badgeNotifications) badgeNotifications.remove();
+                        const badgeMessages = document.querySelector('#bh-messages-btn-header .absolute');
+                        if (badgeMessages) badgeMessages.remove();
                         document.getElementById('notifications-actions-menu').classList.add('hidden');
                     }
                 } catch (error) {
                     console.error('Error clearing notifications:', error);
+                }
+            }
+
+            async function markReadAndRedirect(id, url, event, type) {
+                if (event) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                }
+
+                // Immediate UI update
+                const items = document.querySelectorAll(`[onclick*="${id}"]`);
+                let wasUnread = false;
+                items.forEach(item => {
+                    if (item.classList.contains('notification-unread')) {
+                        wasUnread = true;
+                    }
+                    item.classList.remove('bg-[#FACC15]/5', 'notification-unread');
+                    const dot = item.querySelector('.notification-dot');
+                    if (dot) dot.remove();
+                });
+
+                // Update counts immediately
+                if (wasUnread) {
+                    const badgeId = type === 'message' ? '#bh-messages-btn-header .absolute' : '#bh-notifications-btn-header .absolute';
+                    const badge = document.querySelector(badgeId);
+                    if (badge) {
+                        const count = parseInt(badge.textContent.trim()) || 0;
+                        if (count <= 1) {
+                            badge.remove();
+                        } else {
+                            badge.textContent = count - 1;
+                        }
+                    }
+                }
+
+                try {
+                    // Start marker request but don't wait for it if it takes too long
+                    fetch(`/user/notifications/mark-read/${id}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                        }
+                    });
+                } catch (e) {}
+
+                if (url && url !== '#') {
+                    window.location.href = url;
                 }
             }
 

@@ -13,6 +13,9 @@ class Message extends Model
         'conversation_id',
         'sender_id',
         'body',
+        'file_path',
+        'file_name',
+        'mime_type',
     ];
 
     public function conversation()

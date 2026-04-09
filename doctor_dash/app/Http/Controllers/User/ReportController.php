@@ -318,6 +318,15 @@ class ReportController extends Controller
             }
         }
 
+        // Mark related notifications as read
+        $user->unreadNotifications()
+            ->where(function($q) use ($batchId) {
+                $q->where('data->batch_id', $batchId)
+                  ->orWhere('data->report_id', $batchId);
+            })
+            ->get()
+            ->markAsRead();
+
         // Now fetch ALL reports in this batch (including replies from admins)
         $allReports = Report::where('batch_id', $batchId)
             ->with(['caseNotes.user'])

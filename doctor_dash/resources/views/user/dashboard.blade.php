@@ -72,10 +72,10 @@
                         <table class="min-w-full text-left text-xs">
                             <thead class="border-b border-slate-800 text-slate-400">
                                 <tr>
-                                    <th class="py-2 pr-4">Patient Name</th>
-                                    <th class="py-2 pr-4">Status</th>
+                                    <th class="py-2 pr-4 w-1/3">Patient Name</th>
+                                    <th class="py-2 pr-4 w-1/4">Status</th>
                                     <th class="py-2 pr-4">Uploaded</th>
-                                    <th class="py-2 pr-4 text-right">Action</th>
+                                    <th class="py-2 pr-4 text-right w-32">Action</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-slate-800">
@@ -126,9 +126,9 @@
                         <p class="text-slate-500 text-xs py-4 text-center">No recent case messages.</p>
                     @else
                         @foreach ($clientChats as $chat)
-                            <a href="{{ route('user.reports.show', $chat->batch_id) }}"
-                                class="flex items-start gap-4 rounded-xl border border-slate-700/70 bg-slate-900/70 px-3 py-2.5 hover:border-amber-400/80 hover:bg-slate-900/90 transition-all group {{ !$chat->last_message_from_self ? 'border-amber-400/30 bg-amber-400/5' : '' }}">
-                                <div class="h-8 w-8 flex items-center justify-center rounded-full text-amber-400 {{ !$chat->last_message_from_self ? 'bg-amber-400/20 group-hover:bg-amber-400/30' : 'bg-slate-800 group-hover:bg-slate-700' }}">
+                            <a href="{{ route('user.reports.show', $chat->batch_id) }}#chat"
+                                class="flex items-start gap-4 rounded-xl border border-slate-700/70 bg-slate-900/70 px-3 py-2.5 hover:border-amber-400/80 hover:bg-slate-900/90 transition-all group {{ $chat->has_unread_notifications ? 'border-amber-400/30 bg-amber-400/5' : '' }}">
+                                <div class="h-8 w-8 flex items-center justify-center rounded-full text-amber-400 {{ $chat->has_unread_notifications ? 'bg-amber-400/20 group-hover:bg-amber-400/30' : 'bg-slate-800 group-hover:bg-slate-700' }}">
                                     <i data-lucide="message-square" class="w-4 h-4"></i>
                                 </div>
                                 <div class="flex-1 min-w-0">
@@ -140,11 +140,11 @@
                                             </span>
                                         @endif
                                     </div>
-                                    <p class="mt-0.5 text-xs text-slate-400 truncate {{ !$chat->last_message_from_self ? 'text-slate-300' : '' }}">
+                                    <p class="mt-0.5 text-xs text-slate-400 truncate {{ $chat->has_unread_notifications ? 'text-slate-300' : '' }}">
                                         <span class="font-semibold text-white">{{ $chat->sender_name }}:</span> {{ \Illuminate\Support\Str::limit($chat->last_message, 80) }}
                                     </p>
                                 </div>
-                                @if (!$chat->last_message_from_self)
+                                @if ($chat->has_unread_notifications)
                                     <span class="ml-2 inline-flex items-center justify-center rounded-full bg-red-500 w-2.5 h-2.5"></span>
                                 @endif
                             </a>

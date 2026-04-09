@@ -305,6 +305,24 @@
             100% { transform: rotate(360deg); }
         }
 
+        /* Sleek scrollbar for notification and chat dropdowns */
+        .bh-scrollbar-sleek::-webkit-scrollbar {
+            width: 5px;
+            height: 5px;
+        }
+        .bh-scrollbar-sleek::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 10px;
+        }
+        .bh-scrollbar-sleek::-webkit-scrollbar-thumb {
+            background: rgba(250, 204, 21, 0.2);
+            border-radius: 10px;
+            transition: background 0.3s;
+        }
+        .bh-scrollbar-sleek::-webkit-scrollbar-thumb:hover {
+            background: rgba(250, 204, 21, 0.4);
+        }
+
     </style>
 </head>
 
@@ -726,7 +744,7 @@
         @endphp
 
         <!-- Case Chat Notifications Dropdown -->
-        <div id="bh-messages-dropdown" class="fixed top-16 right-32 z-[60] w-[400px] max-h-[600px] bg-[#0c0c0c] rounded-2xl border border-white/10 shadow-2xl hidden flex-col overflow-hidden transform origin-top-right transition-all duration-200 scale-95 opacity-0">
+        <div id="bh-messages-dropdown" class="fixed top-16 right-32 z-[60] w-[400px] bg-[#0c0c0c] rounded-2xl border border-white/10 shadow-2xl hidden flex-col overflow-hidden transform origin-top-right transition-all duration-200 scale-95 opacity-0">
             <div class="p-5 border-b border-white/10">
                 <div class="flex items-center justify-between mb-4">
                     <h3 class="text-2xl font-bold text-white">Case Messages</h3>
@@ -734,7 +752,7 @@
                 <input type="text" id="bh-search-chats" placeholder="Search messages..." class="w-full px-4 py-2.5 bg-[#111111] border border-white/10 rounded-xl text-white placeholder-gray-500 text-sm focus:outline-none focus:border-[#FACC15]">
             </div>
             
-            <div id="bh-conversations-list" class="flex-1 overflow-y-auto">
+            <div id="bh-conversations-list" class="flex-1 overflow-y-auto bh-scrollbar-sleek" style="max-height: calc(80vh - 100px);">
                 @php
                     $__caseChatNotifications = auth()->user()->notifications
                         ->filter(function($n) {
@@ -744,7 +762,11 @@
                         ->take(15);
                 @endphp
                 @forelse($__caseChatNotifications as $notification)
-                    <div class="flex items-start gap-3 p-4 hover:bg-white/5 transition-colors border-b border-white/5 {{ $notification->read_at ? '' : 'bg-[#FACC15]/5' }}">
+                    <div 
+                        onclick="markReadAndRedirect('{{ $notification->id }}', '{{ route('admin.cases.batch', $notification->data['batch_id'] ?? '') }}#chat')"
+                        class="group cursor-pointer flex items-start gap-3 p-4 hover:bg-white/5 transition-colors border-b border-white/5 {{ $notification->read_at ? '' : 'bg-[#FACC15]/5 notification-unread' }} notification-item"
+                        data-read="{{ $notification->read_at ? 'true' : 'false' }}"
+                    >
                         <div class="shrink-0">
                             <div class="h-10 w-10 rounded-full bg-gradient-to-br from-[#FACC15] to-[#F59E0B] flex items-center justify-center text-black font-bold text-sm">
                                 {{ substr($notification->data['title'] ?? 'C', 0, 1) }}
@@ -757,16 +779,16 @@
                             </div>
                             <p class="text-xs text-gray-300 mt-1 line-clamp-2 leading-relaxed">{{ $notification->data['message'] ?? '' }}</p>
                             @if(isset($notification->data['batch_id']))
-                                <a href="{{ route('admin.cases.batch', $notification->data['batch_id']) }}" class="inline-flex items-center gap-1 mt-2 text-[10px] text-[#FACC15] hover:text-white transition-colors">
+                                <span class="inline-flex items-center gap-1 mt-2 text-[10px] text-[#FACC15] group-hover:text-white transition-colors">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
                                     </svg>
                                     Go to Chat
-                                </a>
+                                </span>
                             @endif
                         </div>
                         @if(!$notification->read_at)
-                            <div class="h-1.5 w-1.5 rounded-full bg-[#FACC15] shrink-0 mt-1"></div>
+                            <div class="h-1.5 w-1.5 rounded-full bg-[#FACC15] shrink-0 mt-1 notification-dot"></div>
                         @endif
                     </div>
                 @empty
@@ -776,7 +798,7 @@
         </div>
 
         <!-- Notifications Dropdown -->
-        <div id="bh-notifications-dropdown" class="fixed top-16 right-20 z-[60] w-[360px] max-h-[400px] bg-[#0c0c0c] rounded-xl border border-white/10 shadow-2xl hidden flex-col transform origin-top-right transition-all duration-200 scale-95 opacity-0">
+        <div id="bh-notifications-dropdown" class="fixed top-16 right-20 z-[60] w-[360px] bg-[#0c0c0c] rounded-xl border border-white/10 shadow-2xl hidden flex-col transform origin-top-right transition-all duration-200 scale-95 opacity-0">
             <div class="p-4 border-b border-white/10">
                 <div class="flex items-center justify-between mb-3">
                     <h3 class="text-xl font-bold text-white">Notifications</h3>
@@ -813,17 +835,32 @@
                 </div>
             </div>
             
-            <div id="notifications-list" class="flex-1 overflow-y-auto" style="max-height: calc(400px - 120px);">
+            <div id="notifications-list" class="flex-1 overflow-y-auto bh-scrollbar-sleek" style="max-height: 400px;">
                 @php
+                    $__importantTypes = ['case_created', 'case_updated', 'case_message_received', 'case_files_uploaded', 'case_status_changed'];
                     $__newCaseNotificationsHeader = auth()->user()->notifications
-                        ->filter(function($n) {
-                            return isset($n->data['type']) && $n->data['type'] === 'case_created';
+                        ->filter(function($n) use ($__importantTypes) {
+                            return isset($n->data['type']) && in_array($n->data['type'], $__importantTypes);
                         })
                         ->sortByDesc('created_at')
                         ->take(15);
                 @endphp
                 @forelse($__newCaseNotificationsHeader as $notification)
-                    <div class="notification-item flex items-start gap-3 p-3 hover:bg-white/5 transition-colors border-b border-white/5 {{ $notification->read_at ? '' : 'bg-[#FACC15]/5' }}" data-read="{{ $notification->read_at ? 'true' : 'false' }}">
+                    @php
+                        $targetUrl = '';
+                        $isChatMessage = isset($notification->data['type']) && str_contains($notification->data['type'], 'message');
+                        
+                        if (isset($notification->data['batch_id']) && $notification->data['batch_id']) {
+                            $targetUrl = route('admin.cases.batch', $notification->data['batch_id']) . ($isChatMessage ? '#chat' : '');
+                        } elseif (isset($notification->data['url']) && $notification->data['url']) {
+                            $targetUrl = $notification->data['url'] . ($isChatMessage ? '#chat' : '');
+                        }
+                    @endphp
+                    <div 
+                        onclick="markReadAndRedirect('{{ $notification->id }}', '{{ $targetUrl }}')"
+                        class="notification-item cursor-pointer flex items-start gap-3 p-3 hover:bg-white/5 transition-colors border-b border-white/5 {{ $notification->read_at ? '' : 'bg-[#FACC15]/5' }}" 
+                        data-read="{{ $notification->read_at ? 'true' : 'false' }}"
+                    >
                         <div class="h-10 w-10 rounded-full bg-gradient-to-br from-[#FACC15] to-[#F59E0B] flex items-center justify-center text-black shrink-0">
                             @if(isset($notification->data['type']) && str_contains($notification->data['type'], 'message'))
                                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -850,25 +887,6 @@
                                 <p class="text-[10px] text-[#FACC15]">{{ $notification->created_at->diffForHumans() }}</p>
                             </div>
                             <p class="text-xs text-white leading-relaxed mt-0.5 {{ !$notification->read_at ? 'font-medium' : 'text-gray-300' }}">{{ $notification->data['message'] ?? 'New notification' }}</p>
-                            @if(isset($notification->data['batch_id']) && $notification->data['batch_id'])
-                                <a href="{{ route('admin.cases.batch', $notification->data['batch_id']) }}" class="inline-flex items-center gap-1 mt-1 text-[10px] text-[#FACC15] hover:text-white transition-colors">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
-                                        <polyline points="15,3 21,3 21,9"/>
-                                        <line x1="10" y1="14" x2="21" y2="3"/>
-                                    </svg>
-                                    View Case
-                                </a>
-                            @elseif(isset($notification->data['url']) && $notification->data['url'])
-                                <a href="{{ $notification->data['url'] }}" class="inline-flex items-center gap-1 mt-1 text-[10px] text-[#FACC15] hover:text-white transition-colors">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
-                                        <polyline points="15,3 21,3 21,9"/>
-                                        <line x1="10" y1="14" x2="21" y2="3"/>
-                                    </svg>
-                                    Go to Details
-                                </a>
-                            @endif
                         </div>
                         @if(!$notification->read_at)
                             <div class="h-1.5 w-1.5 rounded-full bg-[#FACC15] shrink-0 mt-1"></div>
@@ -924,7 +942,7 @@
                     ></textarea>
                     <button type="submit" class="h-10 w-10 rounded-full bg-[#FACC15] hover:bg-[#FACC15]/90 flex items-center justify-center transition-colors shrink-0 self-end">
                         <svg class="w-5 h-5 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>
                         </svg>
                     </button>
                 </form>
@@ -1132,6 +1150,26 @@
                         const isRead = item.getAttribute('data-read') === 'true';
                         item.style.display = isRead ? 'none' : 'flex';
                     });
+                }
+            }
+            
+            async function markReadAndRedirect(id, url) {
+                try {
+                    // Mark as read in background
+                    fetch(`/admin/notifications/mark-read/${id}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                        }
+                    });
+                    
+                    // Redirect immediately for better UX
+                    if (url) {
+                        window.location.href = url;
+                    }
+                } catch (err) {
+                    if (url) window.location.href = url;
                 }
             }
             

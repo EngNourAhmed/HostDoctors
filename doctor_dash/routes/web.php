@@ -209,6 +209,7 @@ Route::middleware(['auth', 'role:admin,assistant,admin_assistant'])
         // Notifications for admins and assistants
         Route::get('/notifications', [ChatController::class, 'notifications'])->name('notifications.index');
         Route::post('/notifications/mark-all-read', [ChatController::class, 'markAllNotificationsAsRead'])->name('notifications.mark-all-read');
+        Route::post('/notifications/mark-read/{notification}', [ChatController::class, 'markNotificationAsRead'])->name('notifications.mark-read');
         Route::delete('/notifications/clear-all', [ChatController::class, 'clearAllNotifications'])->name('notifications.clear-all');
     });
 
@@ -248,6 +249,7 @@ Route::middleware(['auth', 'role:user'])
         Route::get('/notifications', [UserChatController::class, 'notifications'])->name('notifications.index');
         Route::get('/notifications/recent', [UserChatController::class, 'recentNotifications'])->name('notifications.recent');
         Route::post('/notifications/mark-all-read', [UserChatController::class, 'markAllNotificationsAsRead'])->name('notifications.mark-all-read');
+        Route::post('/notifications/mark-read/{notification}', [UserChatController::class, 'markNotificationAsRead'])->name('notifications.mark-read');
         Route::delete('/notifications/clear-all', [UserChatController::class, 'clearAllNotifications'])->name('notifications.clear-all');
     });
 
@@ -260,6 +262,7 @@ Route::middleware(['auth'])
         Route::get('/case-notes/{note}/edit', [CaseNoteController::class, 'edit'])->name('case.notes.edit');
         Route::delete('/case-notes/{note}', [CaseNoteController::class, 'destroy'])->name('case.notes.destroy');
         Route::post('/case-files/{batch_id}/upload', [App\Http\Controllers\CaseFileController::class, 'store'])->name('case.files.upload');
+        Route::patch('/case-files/{report}/rename', [App\Http\Controllers\CaseFileController::class, 'rename'])->name('case.files.rename');
         Route::delete('/case-files/{report}', [App\Http\Controllers\CaseFileController::class, 'destroy'])->name('case.files.destroy');
         Route::post('/reports/{report}/generate-link', [UserReportController::class, 'generateFileLink'])->name('reports.generate-link');
         Route::post('/reports/batch/{batchId}/generate-link', [UserReportController::class, 'generateBatchLink'])->name('reports.batch.generate-link');

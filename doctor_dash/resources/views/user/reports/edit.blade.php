@@ -219,13 +219,22 @@
                                     <div class="grid grid-cols-1 md:grid-cols-2 gap-y-3 gap-x-6">
                                         @php
                                             $services = [
-                                                'Tooth supported Surgical Guide',
-                                                'Bone supported Surgical Guide',
-                                                'Tissue supported Surgical Guide',
-                                                'Stackable Guide only',
-                                                'Stackable Guide with immediate PMMA',
-                                                'PMMA Temps',
-                                                'Prosthetic Finals'
+                                                'BH Tooth supported Surgical Guide',
+                                                'BH Bone supported Surgical Guide',
+                                                'BH Tissue supported Surgical Guide',
+                                                'BH Stackable Guide only',
+                                                'BH Stackable Guide with immediate PMMA',
+                                                'BH PMMA Temps',
+                                                'BH Prosthetic Finals',
+                                                'BH Tooth supported prosthesis',
+                                                'BH Implant Supported prosthesis',
+                                                'BH Full Arch Prosthesis',
+                                                'BH Digital Smile Design',
+                                                'BH Occlusal Appliance',
+                                                'BH Maxillofacial Prosthesis',
+                                                'BH Removable Dentures',
+                                                'BH Consultations',
+                                                'BH Printing Services',
                                             ];
                                         @endphp
                                         @foreach($services as $service)
@@ -262,7 +271,7 @@
                                  <div class="space-y-4 md:col-span-2">
                                      <label class="block text-[10px] font-black uppercase tracking-widest text-[#FACC15]">Select Services <span class="text-red-500">*</span></label>
                                      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                         @foreach(['Tooth supported Surgical Guide', 'Bone supported Surgical Guide', 'Tissue supported Surgical Guide', 'Stackable Guide only', 'Stackable Guide with immediate PMMA', 'PMMA Temps', 'Prosthetic Finals'] as $service)
+                                         @foreach(['BH Tooth supported Surgical Guide', 'BH Bone supported Surgical Guide', 'BH Tissue supported Surgical Guide', 'BH Stackable Guide only', 'BH Stackable Guide with immediate PMMA', 'BH PMMA Temps', 'BH Prosthetic Finals', 'BH Tooth supported prosthesis', 'BH Implant Supported prosthesis', 'BH Full Arch Prosthesis', 'BH Digital Smile Design', 'BH Occlusal Appliance', 'BH Maxillofacial Prosthesis', 'BH Removable Dentures', 'BH Consultations', 'BH Printing Services'] as $service)
                                             <label class="flex items-center p-3 rounded-xl border border-white/5 bg-white/5 cursor-pointer hover:bg-white/10 transition-all">
                                                 <input type="checkbox" name="services[]" value="{{ $service }}" class="w-4 h-4 text-[#FACC15] bg-transparent border-2 border-white/20 rounded focus:ring-[#FACC15] mr-3">
                                                 <span class="text-xs font-bold text-white">{{ $service }}</span>
@@ -434,52 +443,7 @@
                     </div>
                 </div>
 
-                <!-- SECTION 4: AUTHORIZATION -->
-                <div class="space-y-5 pt-5">
-                    <div class="flex items-center gap-4">
-                        <div class="h-8 w-8 rounded-xl bg-sky-500/10 flex items-center justify-center border border-sky-500/20">
-                            <span class="text-sky-400 font-black text-xs">04</span>
-                        </div>
-                        <h3 class="text-sm font-black uppercase tracking-[0.2em] text-white">Authorization</h3>
-                        <div class="flex-1 h-px bg-white/5"></div>
-                    </div>
-
-                    <div class="px-2 space-y-6">
-                        <!-- Standard Terms -->
-                        <div id="standard-terms" class="space-y-4 {{ in_array(($report->case_type), ['full_arch', 'single_implant']) ? 'hidden' : '' }}">
-                            <label class="flex items-start gap-4 p-5 rounded-2xl border border-white/5 bg-white/5 cursor-pointer hover:bg-white/10 transition-all select-none group">
-                                <input type="checkbox" name="parts_acknowledgement" value="1" class="w-5 h-5 text-sky-500 bg-transparent border-2 border-white/10 rounded mt-0.5 shrink-0">
-                                <span class="text-xs font-black text-white/80 group-hover:text-white uppercase tracking-wider">Parts & Components Acknowledgement</span>
-                            </label>
-                            <label class="flex items-start gap-4 p-5 rounded-2xl border border-white/5 bg-white/5 cursor-pointer hover:bg-white/10 transition-all select-none group">
-                                <input type="checkbox" class="w-5 h-5 text-sky-500 bg-transparent border-2 border-white/10 rounded mt-0.5 shrink-0">
-                                <span class="text-xs font-black text-white/80 group-hover:text-white uppercase tracking-wider">Terms & Conditions</span>
-                            </label>
-                        </div>
-                        
-                        <!-- Full Arch Terms -->
-                        <div id="full-arch-terms" class="space-y-6 {{ in_array(($report->case_type), ['full_arch', 'single_implant']) ? '' : 'hidden' }}">
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
-                                <label class="block text-sm font-black text-white">Parts Acknowledgement <span class="text-red-500">*</span></label>
-                                <label class="flex items-start gap-3 cursor-pointer group">
-                                    <input type="radio" name="parts_acknowledgement_full_arch" value="1" class="w-4 h-4 text-blue-500 mt-1">
-                                    <span class="text-sm text-white">I am aware that specific guided parts are not included.</span>
-                                </label>
-                            </div>
-                            <label class="flex items-center gap-3 cursor-pointer group">
-                                <input type="checkbox" class="w-5 h-5 border-gray-300 rounded mt-1" style="appearance: auto; background-color: white;">
-                                <span class="text-sm text-white">I agree to the <a href="#" class="text-blue-500 underline">terms & conditions</a>. <span class="text-red-500">*</span></span>
-                            </label>
-                        </div>
-
-                        <!-- Signature -->
-                        <div class="space-y-2">
-                            <label class="block text-[10px] font-black uppercase tracking-widest text-sky-400">Digital Signature <span class="text-red-500">*</span></label>
-                            <input type="text" name="signature" required placeholder="Type full name as signature"
-                                class="w-full rounded-xl border border-white/5 bg-white/5 px-4 py-4 text-sm text-white focus:outline-none focus:ring-1 focus:ring-sky-500 transition-all font-serif italic text-lg text-center">
-                        </div>
-                    </div>
-                </div>
+                <!-- SECTION 4: AUTHORIZATION (REMOVED AS PER REQUEST) -->
                 
                 <!-- Submit -->
                 <div class="pt-6 relative text-center">
@@ -603,7 +567,20 @@ input[type="radio"], input[type="checkbox"] {
                 const fileId = 'file-' + Math.random().toString(36).substr(2, 9);
                 const wrapper = document.createElement('div');
                 wrapper.className = 'rounded-xl border border-white/10 bg-white/5 p-3 flex items-center justify-between mb-2 shadow-sm';
-                wrapper.innerHTML = `<span class="text-[11px] text-white truncate max-w-[150px] font-bold">${file.name}</span><span id="prog-${fileId}" class="text-[9px] text-[#FACC15] uppercase font-black tracking-tighter animate-pulse text-right">0%</span>`;
+                
+                const lastDot = file.name.lastIndexOf('.');
+                const nameOnly = lastDot !== -1 ? file.name.substring(0, lastDot) : file.name;
+                const extOnly = lastDot !== -1 ? file.name.substring(lastDot) : '';
+
+                wrapper.innerHTML = `
+                    <div class="flex-1 min-w-0 mr-4">
+                        <div class="flex items-center">
+                            <input type="text" id="rename-${fileId}" class="w-full bg-transparent border-b border-white/10 text-[11px] text-white font-bold px-1 py-0.5 focus:outline-none focus:border-[#FACC15] transition-all" value="${nameOnly}" disabled>
+                            <span class="text-[11px] text-white/50 font-bold ml-1">${extOnly}</span>
+                        </div>
+                    </div>
+                    <span id="prog-${fileId}" class="text-[9px] text-[#FACC15] uppercase font-black tracking-tighter animate-pulse text-right w-16">0%</span>
+                `;
                 if (previewContainer) previewContainer.appendChild(wrapper);
 
                 const xhr = new XMLHttpRequest();
@@ -632,7 +609,7 @@ input[type="radio"], input[type="checkbox"] {
                             form.insertAdjacentHTML('beforeend', `
                                 <input type="hidden" name="temp_paths[]" value="${resp.path}">
                                 <input type="hidden" name="categories[${suffix}]" value="${category}">
-                                <input type="hidden" name="original_names[${suffix}]" value="${resp.original_name}">
+                                <input type="hidden" id="orig-${suffix}" name="original_names[${suffix}]" value="${resp.original_name}">
                                 <input type="hidden" name="mime_types[${suffix}]" value="${resp.mime_type}">
                                 <input type="hidden" name="sizes[${suffix}]" value="${resp.size}">
                             `);
@@ -641,6 +618,14 @@ input[type="radio"], input[type="checkbox"] {
                                 p.textContent = 'READY'; 
                                 p.classList.remove('animate-pulse');
                                 p.classList.replace('text-[#FACC15]', 'text-emerald-400'); 
+                            }
+                            const renameInput = document.getElementById('rename-' + fileId);
+                            if (renameInput) {
+                                renameInput.disabled = false;
+                                renameInput.addEventListener('input', function() {
+                                    const hiddenInput = document.getElementById('orig-' + suffix);
+                                    if (hiddenInput) hiddenInput.value = this.value + extOnly;
+                                });
                             }
                         } else {
                             const p = document.getElementById('prog-' + fileId);
