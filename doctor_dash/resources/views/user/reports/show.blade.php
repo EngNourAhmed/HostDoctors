@@ -162,13 +162,13 @@
                 $summaryReplies = $adminReplies->where('description', 'Automated PDF Summary');
             @endphp
             <button data-tab="files" class="tab-button px-6 py-3 text-sm font-bold text-gray-400 hover:text-white transition-colors border-b-2 border-transparent whitespace-nowrap">
-                Case Files
+                Files
             </button>
             <button data-tab="notes" class="tab-button px-6 py-3 text-sm font-bold text-gray-400 hover:text-white transition-colors border-b-2 border-transparent whitespace-nowrap">
                 Case Notes
             </button>
             <button data-tab="chat" class="tab-button px-6 py-3 text-sm font-bold text-gray-400 hover:text-white transition-colors border-b-2 border-transparent whitespace-nowrap relative">
-                Client Talk
+                Client Chat
                 <span id="chat-notification-indicator" class="hidden absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full"></span>
             </button>
         </div>
@@ -190,12 +190,20 @@
             @php
                 $folders = [
                     'case_folder' => ['title' => 'Case Folder', 'icon' => 'M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z', 'color' => 'text-blue-400'],
+                    'additional_files' => ['title' => 'Additional Files', 'icon' => 'M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z', 'color' => 'text-emerald-400'],
                     'doctor_public' => ['title' => 'Admin Public', 'icon' => 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z', 'color' => 'text-[#FACC15]'],
                 ];
             @endphp
 
             @foreach($folders as $type => $info)
-                @php $folderFiles = $reports->where('folder_type', $type); @endphp
+                @php 
+                    $folderFiles = $reports->filter(function($r) use ($type) {
+                        if ($type === 'case_folder') {
+                            return $r->folder_type === 'case_folder' || $r->folder_type === 'user' || is_null($r->folder_type);
+                        }
+                        return $r->folder_type === $type;
+                    });
+                @endphp
                 @if($folderFiles->count() > 0)
                     <div class="mb-4">
                         <!-- Folder Header (Clickable) -->
@@ -247,10 +255,8 @@
                                                 <p class="text-[10px] text-gray-500">
                                                     Uploaded: {{ $report->created_at->format('Y-m-d h:i A') }}
                                                 </p>
-                                                <span class="text-[9px] font-black px-2 py-0.5 rounded bg-white/5 border border-white/10 {{ optional($report->updatedBy)->role === 'admin' ? 'text-[#FACC15]' : 'text-blue-400' }} uppercase tracking-widest flex items-center gap-1.5">
-                                                    <span class="opacity-70 font-bold">{{ optional($report->updatedBy)->name }}</span>
-                                                    <span class="w-1 h-1 rounded-full bg-current opacity-30"></span>
-                                                    <span>{{ optional($report->updatedBy)->role === 'admin' ? 'Admin' : 'Client' }}</span>
+                                                <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                                                    {{ optional($report->updatedBy)->name }}
                                                 </span>
                                             </div>
                                         </div>
@@ -275,7 +281,7 @@
                                                 </a>
                                             </div>
                                             <div class="flex items-center gap-2">
-                                                @if(auth()->id() === $report->updated_by)
+                                                @if($report->updated_by === auth()->id())
                                                 <button type="button" 
                                                     class="rename-file-btn flex-1 py-1.5 rounded-lg bg-white/5 border border-white/10 text-[11px] font-bold text-[#FACC15] hover:bg-[#FACC15]/10 transition-colors flex items-center justify-center gap-1.5"
                                                     data-report-id="{{ $report->id }}"
@@ -346,6 +352,10 @@
                             </div>
                         </div>
                     </div>
+
+                    <!-- Selected Files Preview Container -->
+                    <div id="file-list-preview" class="hidden grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-80 overflow-y-auto pr-2 custom-scrollbar"></div>
+
                     <div class="flex justify-end pt-4">
                         <button type="submit" id="submit-upload-btn" class="group flex items-center gap-3 px-8 py-4 bg-[#FACC15] hover:bg-[#EAB308] rounded-2xl text-black font-black tracking-widest transition-all hover:scale-105 active:scale-95 shadow-[0_0_20px_rgba(250,204,21,0.2)]">
                             <svg class="w-5 h-5 transition-transform group-hover:translate-y-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
@@ -620,41 +630,65 @@
         </script>
 
         <div id="chat" data-tab-content="chat" class="tab-content hidden">
-            <div class="w-full mx-auto">
-                <h3 class="text-xl font-bold mb-6 text-white tracking-tight">Case Discussion</h3>
-                
-                <div class="bg-[#111111] rounded-xl border border-white/10 overflow-hidden">
-                    <div class="flex flex-col h-[500px] md:h-[700px]">
-                        <!-- Messages Container -->
-                        <div id="case-chat-messages" class="flex-1 overflow-y-auto p-4 md:p-6 space-y-4">
-                            <!-- Messages will be loaded here by JavaScript -->
-                        </div>
-
-                        <!-- Message Input Form -->
-                        <div class="p-3 bg-[#0c0c0c] border-t border-white/5">
-                            <div id="case-chat-file-preview" class="hidden mb-3"></div>
-                            <form id="case-chat-form" class="flex items-center gap-2">
-                                <input type="file" id="case-chat-file" class="hidden" multiple>
-                                <button type="button" id="case-chat-attach-btn" class="p-2.5 rounded-xl bg-white/5 text-slate-400 hover:text-[#FACC15] hover:bg-white/10 transition-all border border-white/5">
-                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/>
-                                    </svg>
-                                </button>
-                                <div class="flex-1 chat-input-wrapper">
-                                    <textarea 
-                                        id="case-chat-input" 
-                                        placeholder="Type a message..." 
-                                        rows="1"
-                                        class="flex-1 bg-transparent border-none text-[15px] text-[#e9edef] placeholder-[#8696a0] focus:ring-0 resize-none py-2 px-1"
-                                    ></textarea>
+            <div class="max-w-5xl mx-auto">
+                <div class="flex flex-col h-[600px] md:h-[750px] bg-[#0c0c0c] rounded-[32px] border border-white/10 shadow-2xl overflow-hidden relative">
+                    <!-- Background Decor -->
+                    <div class="absolute inset-0 opacity-[0.03] pointer-events-none" style="background-image: url('https://www.transparenttextures.com/patterns/cubes.png');"></div>
+                    
+                    <!-- Chat Header -->
+                    <div class="p-5 border-b border-white/10 bg-[#111111]/80 backdrop-blur-md flex items-center justify-between z-10">
+                        <div class="flex items-center gap-4">
+                            <div class="w-12 h-12 rounded-2xl bg-[#FACC15] flex items-center justify-center text-black shadow-lg shadow-yellow-400/20">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 class="text-lg font-black text-white tracking-tight uppercase">Client Chat</h3>
+                                <div class="flex items-center gap-2">
+                                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                                    <p class="text-[10px] text-slate-500 font-bold tracking-widest uppercase">Direct line with Staff</p>
                                 </div>
-                                <button type="submit" class="w-12 h-12 flex items-center justify-center rounded-full bg-[#FACC15] text-black hover:bg-[#EAB308] transition-all shadow-lg active:scale-95 group">
-                                    <svg class="w-6 h-6 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="3">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Messages Container -->
+                    <div id="case-chat-messages" class="flex-1 overflow-y-auto p-6 space-y-4 relative z-10 flex flex-col no-scrollbar" style="scroll-behavior: smooth;">
+                        <!-- Messages will be loaded here by JavaScript -->
+                    </div>
+
+                    <!-- Message Input Form -->
+                    <div class="p-6 bg-[#0c0c0c] border-t border-white/5 z-10">
+                        <div id="case-chat-file-preview" class="mb-4 hidden animate-in slide-in-from-bottom-2 duration-300">
+                            <!-- Preview items will go here -->
+                        </div>
+                        
+                        <form id="case-chat-form" class="flex items-end gap-4">
+                            <input type="file" id="case-chat-file" class="hidden" multiple>
+                            
+                            <div class="chat-input-wrapper flex-1 group">
+                                <button type="button" id="case-chat-attach-btn" class="p-3 rounded-full text-slate-400 hover:text-[#FACC15] hover:bg-white/5 transition-all">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/>
                                     </svg>
                                 </button>
-                            </form>
-                        </div>
+                                
+                                <textarea 
+                                    id="case-chat-input" 
+                                    placeholder="Type your clinical notes or message..." 
+                                    rows="1"
+                                    class="flex-1 bg-transparent border-none text-white text-sm font-bold placeholder-slate-600 focus:ring-0 focus:outline-none py-3 h-auto max-h-32 resize-none"
+                                    oninput="this.style.height = ''; this.style.height = this.scrollHeight + 'px'"
+                                ></textarea>
+                            </div>
+
+                            <button type="submit" class="w-12 h-12 flex items-center justify-center rounded-full bg-[#FACC15] text-black hover:bg-[#EAB308] transition-all shadow-lg active:scale-95 group">
+                                <svg class="w-6 h-6 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="3">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
+                                </svg>
+                            </button>
+                        </form>
                     </div>
                 </div>
                 
@@ -678,58 +712,45 @@
 
                     .message-bubble {
                         position: relative;
-                        max-width: 85%;
-                        padding: 10px 45px 10px 14px; /* More right padding for info */
-                        border-radius: 12px;
-                        margin-bottom: 4px;
-                        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-                        min-width: 80px;
+                        max-width: 75%;
+                        padding: 12px 16px;
+                        border-radius: 20px;
+                        margin-bottom: 8px;
+                        box-shadow: 0 4px 15px -3px rgba(0, 0, 0, 0.4);
+                        min-width: 100px;
+                        z-index: 5;
                     }
 
                     .message-self {
-                        background-color: #FACC15; /* Brand Yellow */
+                        background-color: #FACC15;
                         color: #000000;
                         align-self: flex-end;
-                        border-top-right-radius: 2px;
+                        border-bottom-right-radius: 4px;
                     }
 
                     .message-other {
-                        background-color: #1a1a1a; /* Matching Site Card Background */
+                        background-color: #111111;
                         color: #e9edef;
                         align-self: flex-start;
-                        border-top-left-radius: 2px;
-                        border: 1px solid rgba(255,255,255,0.05);
+                        border-bottom-left-radius: 4px;
+                        border: 1px solid rgba(255,255,255,0.08);
                     }
 
-                    .message-tail-self {
-                        position: absolute;
-                        top: 0;
-                        right: -8px;
-                        width: 12px;
-                        height: 15px;
-                        background-color: #FACC15;
-                        clip-path: polygon(0 0, 0% 100%, 100% 0);
-                    }
+                    .message-tail-self, .message-tail-other { display: none; }
 
-                    .message-tail-other {
-                        position: absolute;
-                        top: 0;
-                        left: -8px;
-                        width: 12px;
-                        height: 15px;
-                        background-color: #1a1a1a;
-                        clip-path: polygon(100% 0, 100% 100%, 0 0);
-                    }
-
-                    .message-time {
-                        position: absolute;
-                        bottom: 4px;
-                        right: 8px;
+                    .message-info {
+                        display: flex;
+                        justify-content: flex-end;
+                        align-items: center;
+                        gap: 4px;
+                        margin-top: 4px;
                         font-size: 10px;
-                        color: rgba(0, 0, 0, 0.5);
+                        color: rgba(0, 0, 0, 0.4);
+                        font-weight: 600;
                     }
-                    .message-other .message-time {
-                        color: rgba(233, 237, 239, 0.6);
+
+                    .message-other .message-info {
+                        color: rgba(233, 237, 239, 0.4);
                     }
 
                     .loading-spinner-whatsapp {

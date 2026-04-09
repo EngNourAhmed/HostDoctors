@@ -67,6 +67,18 @@ class AuthController extends Controller
         if (Auth::attempt($credentials, $remember)) {
             $request->session()->regenerate();
             $user = Auth::user();
+
+            // Record this as a login event in the visits table
+            try {
+                \App\Models\Visit::create([
+                    'user_id' => $user->id,
+                    'is_login' => true,
+                    'ip_address' => $request->ip(),
+                    'path' => $request->path(),
+                    'user_agent' => substr((string) $request->userAgent(), 0, 1000),
+                ]);
+            } catch (\Throwable $e) {}
+
             $redirectTo = in_array($user->role, ['admin', 'assistant', 'admin_assistant'], true)
                 ? route('admin.dashboard')
                 : route('user.dashboard');

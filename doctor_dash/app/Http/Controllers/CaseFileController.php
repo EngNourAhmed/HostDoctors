@@ -91,9 +91,12 @@ class CaseFileController extends Controller
             'name' => ['required', 'string', 'max:255'],
         ]);
 
-        // Authorization: Admin can rename any. User can only rename THEIR OWN uploads OR files in THEIR case.
-        if (auth()->user()->role !== 'admin' && $report->user_id !== auth()->id() && $report->updated_by !== auth()->id()) {
-            abort(403, 'Unauthorized action.');
+        // Authorization: Admin can rename any. User can only rename THE FILE THEY UPLOADED.
+        if (auth()->user()->role !== 'admin' && $report->updated_by !== auth()->id()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized action. You can only rename files you uploaded.'
+            ], 403);
         }
 
         // Smart Rename: keep extension if not provided
@@ -155,5 +158,66 @@ class CaseFileController extends Controller
         }
 
         return back()->with('success', 'File removed successfully.');
+    }
+
+    /**
+     * Preview a specific file.
+     */
+    public function preview(Report $report)
+    {
+        $this->authorizeAccess($report);
+
+        if (!$report->file_path || !Storage::disk('public')->exists($report->file_path)) {
+            abort(404);
+        }
+
+        return response()->file(Storage::disk('public')->path($report->file_path), [
+            'Content-Type' => $report->mime_type ?: 'application/octet-stream',
+        ])->setContentDisposition('inline', $report->original_name);
+    }
+
+    /**
+     * Download a specific file.
+     */
+    public function download(Report $report)
+    {
+        $this->authorizeAccess($report);
+
+        if (!$report->file_path || !Storage::disk('public')->exists($report->file_path)) {
+            abort(404);
+        }
+
+        return Storage::disk('public')->download($report->file_path, $report->original_name, [
+            'Content-Type' => $report->mime_type ?: 'application/octet-stream',
+        ]);
+    }
+
+    /**
+     * Private helper to authorize access to a file based on batch association.
+     */
+    private function authorizeAccess(Report $report)
+    {
+        $user = auth()->user();
+        
+        // Admin categories always have access
+        if (in_array($user->role, ['admin', 'assistant', 'admin_assistant'])) {
+            return true;
+        }
+
+        // Users can access if they are the owner of the report
+        // OR if they own the batch this report belongs to
+        $ownsBatch = Report::where('user_id', $user->id)
+            ->where('batch_id', $report->batch_id)
+            ->exists();
+
+        if ($ownsBatch) {
+            // Further check: Users cannot see 'doctor_private' files
+            if ($report->folder_type === 'doctor_private') {
+                abort(403, 'Unauthorized access to internal files.');
+            }
+            return true;
+        }
+
+        abort(403, 'Unauthorized access to this case file.');
     }
 }

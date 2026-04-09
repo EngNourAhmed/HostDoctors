@@ -444,11 +444,10 @@
 
                 <!-- SECTION 4: AUTHORIZATION (REMOVED AS PER REQUEST) -->
                 
-                <!-- Submit -->
                 <div class="pt-6 relative text-center">
                     <button type="submit" id="main-submit-btn"
-                        class="relative w-full text-center py-5 rounded-2xl bg-[#FACC15] text-black text-sm font-black uppercase tracking-[0.3em] flex items-center justify-center gap-4 hover:bg-[#F5C211] transition-all hover:scale-[1.01] active:scale-[0.99]">
-                        <span>Submit Case</span>
+                        class="relative w-full text-center py-5 rounded-2xl bg-[#FACC15] text-black text-sm font-black uppercase tracking-[0.3em] flex items-center justify-center gap-4 hover:bg-[#F5C211] transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed">
+                        <span id="btn-text">Submit Case</span>
                     </button>
                 </div>
             </form>
@@ -535,17 +534,30 @@ input[type="radio"], input[type="checkbox"] {
             const mainSubmitBtn = document.getElementById('main-submit-btn');
             let activeUploads = 0;
 
+            const submitLoadingSpinner = `
+                <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+            `;
+
             function updateSubmitButtonState() {
                 if (activeUploads > 0) {
                     mainSubmitBtn.disabled = true;
                     mainSubmitBtn.classList.add('opacity-50');
-                    mainSubmitBtn.innerHTML = 'Uploading...';
+                    mainSubmitBtn.innerHTML = submitLoadingSpinner + '<span>UPLOADING...</span>';
                 } else {
                     mainSubmitBtn.disabled = false;
                     mainSubmitBtn.classList.remove('opacity-50');
-                    mainSubmitBtn.innerHTML = 'Submit Case';
+                    mainSubmitBtn.innerHTML = 'SUBMIT CASE';
                 }
             }
+
+            form.addEventListener('submit', function() {
+                mainSubmitBtn.disabled = true;
+                mainSubmitBtn.classList.add('opacity-50');
+                mainSubmitBtn.innerHTML = submitLoadingSpinner + '<span>SUBMITTING...</span>';
+            });
 
             form.addEventListener('change', function(e) {
                 if (e.target && e.target.matches('[data-report-file-input]')) {
@@ -604,7 +616,7 @@ input[type="radio"], input[type="checkbox"] {
                         updateSubmitButtonState();
                         if (xhr.status === 200) {
                             const resp = JSON.parse(xhr.responseText);
-                            const suffix = resp.path.replace(/\./g, '_').replace(/\//g, '_');
+                            const suffix = resp.path.replace(/\./g, '_');
                             form.insertAdjacentHTML('beforeend', `
                                 <input type="hidden" name="temp_paths[]" value="${resp.path}">
                                 <input type="hidden" name="categories[${suffix}]" value="${category}">
@@ -632,6 +644,26 @@ input[type="radio"], input[type="checkbox"] {
                         }
                     }
                 };
+
+                // Form submission loading state
+                form.addEventListener('submit', function(e) {
+                    if (activeUploads > 0) {
+                        e.preventDefault();
+                        alert('Please wait for all files to finish uploading.');
+                        return;
+                    }
+                    
+                    mainSubmitBtn.disabled = true;
+                    mainSubmitBtn.classList.add('opacity-70');
+                    mainSubmitBtn.innerHTML = `
+                        <svg class="animate-spin h-5 w-5 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <span>Submitting Case...</span>
+                    `;
+                });
+
                 xhr.open('POST', "{{ route('user.reports.upload-temp') }}");
                 xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
                 xhr.send(formData);

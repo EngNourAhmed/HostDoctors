@@ -602,6 +602,32 @@
             <div class="p-5 border-b border-white/10">
                 <div class="flex items-center justify-between mb-4">
                     <h3 class="text-2xl font-bold text-white">Case Messages</h3>
+                    <div class="relative">
+                        <button id="messages-actions-btn" class="h-8 w-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-white">
+                                <circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/>
+                            </svg>
+                        </button>
+                        <!-- Messages Actions Menu -->
+                        <div id="messages-actions-menu" class="hidden absolute right-0 top-full mt-2 w-52 bg-[#0c0c0c] rounded-xl border border-white/10 shadow-2xl overflow-hidden z-[70]">
+                            <button onclick="markAllNotificationsAsRead('message')" class="w-full px-4 py-2.5 text-left text-xs text-white hover:bg-white/5 transition-colors border-b border-white/5">
+                                <div class="flex items-center gap-2.5">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <polyline points="20 6 9 17 4 12"/>
+                                    </svg>
+                                    <span>Mark all read</span>
+                                </div>
+                            </button>
+                            <button onclick="clearAllNotifications('message')" class="w-full px-4 py-2.5 text-left text-xs text-white hover:bg-white/5 transition-colors border-b border-white/5">
+                                <div class="flex items-center gap-2.5">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                                    </svg>
+                                    <span>Clear all</span>
+                                </div>
+                            </button>
+                        </div>
+                    </div>
                 </div>
                 <input type="text" id="bh-search-chats" placeholder="Search messages..." class="w-full px-4 py-2.5 bg-[#111111] border border-white/10 rounded-xl text-white placeholder-gray-500 text-sm focus:outline-none focus:border-[#FACC15]">
             </div>
@@ -662,15 +688,15 @@
                         </button>
                         <!-- Actions Menu -->
                         <div id="notifications-actions-menu" class="hidden absolute right-0 top-full mt-2 w-52 bg-[#0c0c0c] rounded-xl border border-white/10 shadow-2xl overflow-hidden z-[70]">
-                            <button onclick="markAllNotificationsAsRead()" class="w-full px-4 py-2.5 text-left text-xs text-white hover:bg-white/5 transition-colors border-b border-white/5">
+                            <button onclick="markAllNotificationsAsRead('notification')" class="w-full px-4 py-2.5 text-left text-xs text-white hover:bg-white/5 transition-colors border-b border-white/5">
                                 <div class="flex items-center gap-2.5">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                         <polyline points="20 6 9 17 4 12"/>
                                     </svg>
-                                    <span>Mark all as read</span>
+                                    <span>Mark all read</span>
                                 </div>
                             </button>
-                            <button onclick="clearAllNotifications()" class="w-full px-4 py-2.5 text-left text-xs text-white hover:bg-white/5 transition-colors border-b border-white/5">
+                            <button onclick="clearAllNotifications('notification')" class="w-full px-4 py-2.5 text-left text-xs text-white hover:bg-white/5 transition-colors border-b border-white/5">
                                 <div class="flex items-center gap-2.5">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                         <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
@@ -689,14 +715,14 @@
             
             <div id="notifications-list" class="flex-1 overflow-y-auto" style="max-height: calc(80vh - 120px);">
                 @php
-                    $__userStatusNotifications = auth()->user()->notifications()
-                        ->where(function($q) {
-                            $q->where('data->type', 'status_updated')
-                              ->orWhere('data->type', 'status_update')
-                              ->orWhere('data->type', 'case_status_change');
+                    $__userStatusNotifications = auth()->user()->notifications
+                        ->filter(function($n) {
+                            $type = $n->data['type'] ?? '';
+                            return str_contains($type, 'case_') && !str_contains($type, 'message_received')
+                                || in_array($type, ['status_updated', 'status_update', 'case_status_change']);
                         })
-                        ->orderByDesc('created_at')
-                        ->take(15)->get();
+                        ->sortByDesc('created_at')
+                        ->take(15);
                 @endphp
                 @forelse($__userStatusNotifications as $notification)
                     @php $_linkId = $notification->data['batch_id'] ?? $notification->data['report_id'] ?? null; @endphp
@@ -979,6 +1005,16 @@
                     }
                 });
 
+                // Toggle messages actions menu
+                const msgActionsBtn = document.getElementById('messages-actions-btn');
+                const msgActionsMenu = document.getElementById('messages-actions-menu');
+                if (msgActionsBtn && msgActionsMenu) {
+                    msgActionsBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        msgActionsMenu.classList.toggle('hidden');
+                    });
+                }
+
                 // Toggle notifications actions menu
                 const actionsBtn = document.getElementById('notifications-actions-btn');
                 const actionsMenu = document.getElementById('notifications-actions-menu');
@@ -1018,9 +1054,12 @@
                 }
             }
 
-            async function markAllNotificationsAsRead() {
+            async function markAllNotificationsAsRead(type = null) {
                 try {
-                    const response = await fetch('{{ route("user.notifications.mark-all-read") }}', {
+                    let url = '{{ route("user.notifications.mark-all-read") }}';
+                    if (type) url += `?type=${type}`;
+                    
+                    const response = await fetch(url, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -1029,20 +1068,33 @@
                     });
                     
                     if (response.ok) {
-                        document.querySelectorAll('.notification-item, .notification-unread').forEach(item => {
-                            item.setAttribute('data-read', 'true');
-                            item.classList.remove('bg-[#FACC15]/5', 'notification-unread');
-                            const dot = item.querySelector('.bg-\\[\\#FACC15\\], .notification-dot');
-                            if (dot && dot.classList.contains('rounded-full')) dot.remove();
-                        });
-                        const badgeNotifications = document.querySelector('#bh-notifications-btn-header .absolute');
-                        if (badgeNotifications) badgeNotifications.remove();
-                        const badgeMessages = document.querySelector('#bh-messages-btn-header .absolute');
-                        if (badgeMessages) badgeMessages.remove();
-                        document.getElementById('notifications-actions-menu').classList.add('hidden');
+                        const selector = type === 'message' ? '#bh-conversations-list' : '#notifications-list';
+                        const container = document.querySelector(selector);
+                        
+                        if (container) {
+                            container.querySelectorAll('.notification-unread').forEach(item => {
+                                item.setAttribute('data-read', 'true');
+                                item.classList.remove('bg-[#FACC15]/5', 'notification-unread');
+                                const dot = item.querySelector('.bg-\\[\\#FACC15\\], .notification-dot');
+                                if (dot && dot.classList.contains('rounded-full') || dot && dot.classList.contains('notification-dot')) dot.remove();
+                            });
+                        }
+                        
+                        if (type === 'notification' || !type) {
+                            const badgeNotifications = document.querySelector('#bh-notifications-btn-header .absolute');
+                            if (badgeNotifications) badgeNotifications.remove();
+                        }
+                        
+                        if (type === 'message' || !type) {
+                            const badgeMessages = document.querySelector('#bh-messages-btn-header .absolute');
+                            if (badgeMessages) badgeMessages.remove();
+                        }
+                        
+                        if (msgActionsMenu) msgActionsMenu.classList.add('hidden');
+                        if (actionsMenu) actionsMenu.classList.add('hidden');
                     }
                 } catch (error) {
-                    console.error('Error clearing notifications:', error);
+                    console.error('Error marking notifications as read:', error);
                 }
             }
 
@@ -1094,10 +1146,13 @@
                 }
             }
 
-            async function clearAllNotifications() {
-                if (!confirm('Are you sure you want to clear all notifications?')) return;
+            async function clearAllNotifications(type = null) {
+                if (!confirm('Are you sure you want to clear these items?')) return;
                 try {
-                    const response = await fetch('{{ route("user.notifications.clear-all") }}', {
+                    let url = '{{ route("user.notifications.clear-all") }}';
+                    if (type) url += `?type=${type}`;
+                    
+                    const response = await fetch(url, {
                         method: 'DELETE',
                         headers: {
                             'Content-Type': 'application/json',
@@ -1106,11 +1161,22 @@
                     });
                     
                     if (response.ok) {
-                        const notificationsList = document.getElementById('notifications-list');
-                        notificationsList.innerHTML = '<div class="text-center text-gray-400 text-xs py-10">No notifications yet</div>';
-                        const badge = document.querySelector('#bh-notifications-btn-header .absolute');
-                        if (badge) badge.remove();
-                        document.getElementById('notifications-actions-menu').classList.add('hidden');
+                        if (type === 'notification' || !type) {
+                            const notificationsList = document.getElementById('notifications-list');
+                            if (notificationsList) notificationsList.innerHTML = '<div class="text-center text-gray-400 text-xs py-10">No notifications yet</div>';
+                            const badge = document.querySelector('#bh-notifications-btn-header .absolute');
+                            if (badge) badge.remove();
+                        }
+                        
+                        if (type === 'message' || !type) {
+                            const conversationsList = document.getElementById('bh-conversations-list');
+                            if (conversationsList) conversationsList.innerHTML = '<div class="text-center text-gray-400 text-sm py-12">No chat notifications yet</div>';
+                            const badge = document.querySelector('#bh-messages-btn-header .absolute');
+                            if (badge) badge.remove();
+                        }
+                        
+                        if (msgActionsMenu) msgActionsMenu.classList.add('hidden');
+                        if (actionsMenu) actionsMenu.classList.add('hidden');
                     }
                 } catch (error) {
                     console.error('Error clearing notifications:', error);

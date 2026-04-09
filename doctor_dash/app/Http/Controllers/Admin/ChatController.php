@@ -545,7 +545,17 @@ class ChatController extends Controller
     public function markAllNotificationsAsRead(Request $request)
     {
         $currentUser = $request->user();
-        $currentUser->unreadNotifications->markAsRead();
+        $query = $currentUser->unreadNotifications();
+        
+        $type = $request->query('type');
+        if ($type === 'message') {
+            // Adjust message type for admin if needed, current system uses case_message_received for both
+            $query->where('data->type', 'case_message_received');
+        } elseif ($type === 'notification') {
+            $query->where('data->type', '!=', 'case_message_received');
+        }
+        
+        $query->get()->markAsRead();
 
         return response()->json(['success' => true]);
     }
@@ -561,7 +571,16 @@ class ChatController extends Controller
     public function clearAllNotifications(Request $request)
     {
         $currentUser = $request->user();
-        $currentUser->notifications()->delete();
+        $query = $currentUser->notifications();
+        
+        $type = $request->query('type');
+        if ($type === 'message') {
+            $query->where('data->type', 'case_message_received');
+        } elseif ($type === 'notification') {
+            $query->where('data->type', '!=', 'case_message_received');
+        }
+        
+        $query->delete();
 
         return response()->json(['success' => true]);
     }

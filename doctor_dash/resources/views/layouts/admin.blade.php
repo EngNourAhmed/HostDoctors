@@ -355,8 +355,8 @@
                     class="bh-nav-link block rounded-lg px-3 py-2 pl-7 text-sm md:text-base font-medium {{ request()->routeIs('admin.cases.*') ? 'bh-nav-link-active' : 'text-slate-300 hover:bg-slate-900 hover:text-white border border-transparent' }}">Cases</a>
                 <a href="{{ route('admin.users.index') }}"
                     class="bh-nav-link block rounded-lg px-3 py-2 pl-7 text-sm md:text-base font-medium {{ request()->routeIs('admin.users.*') ? 'bh-nav-link-active' : 'text-slate-300 hover:bg-slate-900 hover:text-white border border-transparent' }}">Users</a>
-                <a href="{{ route('admin.stats') }}"
-                    class="bh-nav-link block rounded-lg px-3 py-2 pl-7 text-sm md:text-base font-medium {{ request()->routeIs('admin.stats') ? 'bh-nav-link-active' : 'text-slate-300 hover:bg-slate-900 hover:text-white border border-transparent' }}">Analytics</a>
+                <a href="{{ route('admin.analytics.index') }}"
+                    class="bh-nav-link block rounded-lg px-3 py-2 pl-7 text-sm md:text-base font-medium {{ request()->routeIs('admin.analytics.index') ? 'bh-nav-link-active' : 'text-slate-300 hover:bg-slate-900 hover:text-white border border-transparent' }}">Analytics</a>
             </nav>
         </aside>
 
@@ -702,7 +702,27 @@
                     });
                 }
 
-                // Close popups when clicking outside
+                // Toggle messages actions menu
+                const msgActionsBtn = document.getElementById('messages-actions-btn');
+                const msgActionsMenu = document.getElementById('messages-actions-menu');
+                if (msgActionsBtn && msgActionsMenu) {
+                    msgActionsBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        msgActionsMenu.classList.toggle('hidden');
+                    });
+                }
+
+                // Toggle notifications actions menu
+                const actionsBtn = document.getElementById('notifications-actions-btn');
+                const actionsMenu = document.getElementById('notifications-actions-menu');
+                if (actionsBtn && actionsMenu) {
+                    actionsBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        actionsMenu.classList.toggle('hidden');
+                    });
+                }
+
+                // Close popups and menus when clicking outside
                 document.addEventListener('click', (e) => {
                     if (messagesBtn && messagesPopup && !messagesBtn.contains(e.target) && !messagesPopup.contains(e.target)) {
                         messagesPopup.classList.add('hidden');
@@ -711,6 +731,12 @@
                     if (notificationsBtn && notificationsPopup && !notificationsBtn.contains(e.target) && !notificationsPopup.contains(e.target)) {
                         notificationsPopup.classList.add('hidden');
                         notificationsPopup.classList.remove('flex');
+                    }
+                    if (msgActionsMenu && msgActionsBtn && !msgActionsBtn.contains(e.target) && !msgActionsMenu.contains(e.target)) {
+                        msgActionsMenu.classList.add('hidden');
+                    }
+                    if (actionsMenu && actionsBtn && !actionsBtn.contains(e.target) && !actionsMenu.contains(e.target)) {
+                        actionsMenu.classList.add('hidden');
                     }
                 });
             })();
@@ -748,6 +774,32 @@
             <div class="p-5 border-b border-white/10">
                 <div class="flex items-center justify-between mb-4">
                     <h3 class="text-2xl font-bold text-white">Case Messages</h3>
+                    <div class="relative">
+                        <button id="messages-actions-btn" class="h-8 w-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-white">
+                                <circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/>
+                            </svg>
+                        </button>
+                        <!-- Messages Actions Menu -->
+                        <div id="messages-actions-menu" class="hidden absolute right-0 top-full mt-2 w-52 bg-[#0c0c0c] rounded-xl border border-white/10 shadow-2xl overflow-hidden z-[70]">
+                            <button onclick="markAllNotificationsAsRead('message')" class="w-full px-4 py-2.5 text-left text-xs text-white hover:bg-white/5 transition-colors border-b border-white/5">
+                                <div class="flex items-center gap-2.5">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <polyline points="20 6 9 17 4 12"/>
+                                    </svg>
+                                    <span>Mark all read</span>
+                                </div>
+                            </button>
+                            <button onclick="clearAllNotifications('message')" class="w-full px-4 py-2.5 text-left text-xs text-white hover:bg-white/5 transition-colors border-b border-white/5">
+                                <div class="flex items-center gap-2.5">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                                    </svg>
+                                    <span>Clear all</span>
+                                </div>
+                            </button>
+                        </div>
+                    </div>
                 </div>
                 <input type="text" id="bh-search-chats" placeholder="Search messages..." class="w-full px-4 py-2.5 bg-[#111111] border border-white/10 rounded-xl text-white placeholder-gray-500 text-sm focus:outline-none focus:border-[#FACC15]">
             </div>
@@ -810,15 +862,15 @@
                         </button>
                         <!-- Actions Menu -->
                         <div id="notifications-actions-menu" class="hidden absolute right-0 top-full mt-2 w-52 bg-[#0c0c0c] rounded-xl border border-white/10 shadow-2xl overflow-hidden z-[70]">
-                            <button onclick="markAllNotificationsAsRead()" class="w-full px-4 py-2.5 text-left text-xs text-white hover:bg-white/5 transition-colors border-b border-white/5">
+                            <button onclick="markAllNotificationsAsRead('notification')" class="w-full px-4 py-2.5 text-left text-xs text-white hover:bg-white/5 transition-colors border-b border-white/5">
                                 <div class="flex items-center gap-2.5">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                         <polyline points="20 6 9 17 4 12"/>
                                     </svg>
-                                    <span>Mark all as read</span>
+                                    <span>Mark all read</span>
                                 </div>
                             </button>
-                            <button onclick="clearAllNotifications()" class="w-full px-4 py-2.5 text-left text-xs text-white hover:bg-white/5 transition-colors border-b border-white/5">
+                            <button onclick="clearAllNotifications('notification')" class="w-full px-4 py-2.5 text-left text-xs text-white hover:bg-white/5 transition-colors border-b border-white/5">
                                 <div class="flex items-center gap-2.5">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                         <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
@@ -837,10 +889,12 @@
             
             <div id="notifications-list" class="flex-1 overflow-y-auto bh-scrollbar-sleek" style="max-height: 400px;">
                 @php
-                    $__importantTypes = ['case_created', 'case_updated', 'case_message_received', 'case_files_uploaded', 'case_status_changed'];
+                    // Filter out message type notifications from the general list
+                    $__importantTypes = ['case_created', 'case_updated', 'case_files_uploaded', 'case_status_changed', 'case_submitted', 'case_reply_case_submitted'];
                     $__newCaseNotificationsHeader = auth()->user()->notifications
                         ->filter(function($n) use ($__importantTypes) {
-                            return isset($n->data['type']) && in_array($n->data['type'], $__importantTypes);
+                            $type = $n->data['type'] ?? '';
+                            return in_array($type, $__importantTypes) || (str_contains($type, 'case_') && !str_contains($type, 'message_received'));
                         })
                         ->sortByDesc('created_at')
                         ->take(15);
@@ -1104,14 +1158,31 @@
                         } catch (err) {}
                     }
                     
-                    // Close actions menu when clicking outside
-                    if (actionsMenu && actionsBtn) {
-                        try {
-                            if (!actionsBtn.contains(e.target) && !actionsMenu.contains(e.target)) {
-                                actionsMenu.classList.add('hidden');
-                            }
-                        } catch (err) {}
+                    // Actions Menus Guard
+                    const nActionsBtn = document.getElementById('notifications-actions-btn');
+                    const nActionsMenu = document.getElementById('notifications-actions-menu');
+                    if (nActionsBtn && nActionsMenu && !nActionsBtn.contains(e.target) && !nActionsMenu.contains(e.target)) {
+                        nActionsMenu.classList.add('hidden');
                     }
+
+                    const mActionsBtn = document.getElementById('messages-actions-btn');
+                    const mActionsMenu = document.getElementById('messages-actions-menu');
+                    if (mActionsBtn && mActionsMenu && !mActionsBtn.contains(e.target) && !mActionsMenu.contains(e.target)) {
+                        mActionsMenu.classList.add('hidden');
+                    }
+                });
+
+                // Independent Action Menu Toggles
+                document.getElementById('notifications-actions-btn')?.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    document.getElementById('notifications-actions-menu')?.classList.toggle('hidden');
+                    document.getElementById('messages-actions-menu')?.classList.add('hidden');
+                });
+
+                document.getElementById('messages-actions-btn')?.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    document.getElementById('messages-actions-menu')?.classList.toggle('hidden');
+                    document.getElementById('notifications-actions-menu')?.classList.add('hidden');
                 });
                 
                 // Toggle notifications actions menu
@@ -1173,9 +1244,12 @@
                 }
             }
             
-            async function markAllNotificationsAsRead() {
+            async function markAllNotificationsAsRead(type = null) {
                 try {
-                    const response = await fetch('/admin/notifications/mark-all-read', {
+                    let url = '/admin/notifications/mark-all-read';
+                    if (type) url += `?type=${type}`;
+                    
+                    const response = await fetch(url, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -1184,31 +1258,48 @@
                     });
                     
                     if (response.ok) {
-                        // Update UI
-                        document.querySelectorAll('.notification-item').forEach(item => {
-                            item.setAttribute('data-read', 'true');
-                            item.classList.remove('bg-[#FACC15]/5');
-                            const dot = item.querySelector('.h-2.w-2.rounded-full.bg-\\[\\#FACC15\\]');
-                            if (dot) dot.remove();
-                        });
+                        // Update UI based on type
+                        if (type === 'notification' || !type) {
+                            document.querySelectorAll('#notifications-list .notification-item').forEach(item => {
+                                item.setAttribute('data-read', 'true');
+                                item.classList.remove('bg-[#FACC15]/5', 'notification-unread');
+                                const dot = item.querySelector('.notification-dot');
+                                if (dot) dot.remove();
+                            });
+                            
+                            const badge = document.querySelector('#bh-notifications-btn-header .absolute');
+                            if (badge) badge.remove();
+                        }
                         
-                        // Update badge count
-                        const badge = document.querySelector('#bh-notifications-btn-header .absolute');
-                        if (badge) badge.textContent = '0';
+                        if (type === 'message' || !type) {
+                            document.querySelectorAll('#bh-conversations-list .notification-item').forEach(item => {
+                                item.setAttribute('data-read', 'true');
+                                item.classList.remove('bg-[#FACC15]/5', 'notification-unread');
+                                const dot = item.querySelector('.notification-dot');
+                                if (dot) dot.remove();
+                            });
+                            
+                            const badge = document.querySelector('#bh-messages-btn-header .absolute');
+                            if (badge) badge.remove();
+                        }
                         
-                        // Close actions menu
-                        document.getElementById('notifications-actions-menu').classList.add('hidden');
+                        // Close actions menus
+                        if (document.getElementById('notifications-actions-menu')) document.getElementById('notifications-actions-menu').classList.add('hidden');
+                        if (document.getElementById('messages-actions-menu')) document.getElementById('messages-actions-menu').classList.add('hidden');
                     }
                 } catch (error) {
                     console.error('Error marking notifications as read:', error);
                 }
             }
             
-            async function clearAllNotifications() {
-                if (!confirm('Are you sure you want to clear all notifications?')) return;
+            async function clearAllNotifications(type = null) {
+                if (!confirm('Are you sure you want to clear these items?')) return;
                 
                 try {
-                    const response = await fetch('/admin/notifications/clear-all', {
+                    let url = '/admin/notifications/clear-all';
+                    if (type) url += `?type=${type}`;
+                    
+                    const response = await fetch(url, {
                         method: 'DELETE',
                         headers: {
                             'Content-Type': 'application/json',
@@ -1217,16 +1308,22 @@
                     });
                     
                     if (response.ok) {
-                        // Clear UI
-                        const notificationsList = document.getElementById('notifications-list');
-                        notificationsList.innerHTML = '<div class="text-center text-gray-400 text-sm py-12">No notifications yet</div>';
+                        if (type === 'notification' || !type) {
+                            const notificationsList = document.getElementById('notifications-list');
+                            if (notificationsList) notificationsList.innerHTML = '<div class="text-center text-gray-400 text-sm py-12">No notifications yet</div>';
+                            const badge = document.querySelector('#bh-notifications-btn-header .absolute');
+                            if (badge) badge.remove();
+                        }
                         
-                        // Update badge count
-                        const badge = document.querySelector('#bh-notifications-btn-header .absolute');
-                        if (badge) badge.textContent = '0';
+                        if (type === 'message' || !type) {
+                            const conversationsList = document.getElementById('bh-conversations-list');
+                            if (conversationsList) conversationsList.innerHTML = '<div class="text-center text-gray-400 text-sm py-12">No chat notifications yet</div>';
+                            const badge = document.querySelector('#bh-messages-btn-header .absolute');
+                            if (badge) badge.remove();
+                        }
                         
-                        // Close actions menu
-                        document.getElementById('notifications-actions-menu').classList.add('hidden');
+                        if (document.getElementById('messages-actions-menu')) document.getElementById('messages-actions-menu').classList.add('hidden');
+                        if (document.getElementById('notifications-actions-menu')) document.getElementById('notifications-actions-menu').classList.add('hidden');
                     }
                 } catch (error) {
                     console.error('Error clearing notifications:', error);

@@ -55,4 +55,9 @@ class User extends Authenticatable
     {
         return $this->hasOne(Report::class)->latestOfMany();
     }
+
+    public function visits()
+    {
+        return $this->hasMany(Visit::class);
+    }
 }

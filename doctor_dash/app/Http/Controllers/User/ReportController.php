@@ -255,6 +255,8 @@ class ReportController extends Controller
                         'mime_type' => $request->input('mime_types.' . $suffix, 'application/octet-stream'),
                         'size' => $request->input('sizes.' . $suffix, 0),
                         'clinical_data' => $fileClinicalData,
+                        'folder_type' => 'user',
+                        'updated_by' => auth()->id(),
                     ]));
                     $processedTempFiles = true;
                 }
@@ -273,6 +275,8 @@ class ReportController extends Controller
                     'original_name' => $file->getClientOriginalName(),
                     'mime_type' => $file->getClientMimeType(),
                     'size' => $file->getSize(),
+                    'folder_type' => 'user',
+                    'updated_by' => auth()->id(),
                 ]));
             }
         }
@@ -280,6 +284,46 @@ class ReportController extends Controller
         // Special case: If NO files uploaded but form submitted (should handle appropriately)
         if (!$processedTempFiles && empty($data['files'])) {
              Report::create($reportAttributes);
+        }
+
+        // GENERATE CASE SUBMISSION PDF
+        try {
+            $allUploadedFiles = [];
+            $batchReports = Report::where('batch_id', $batchId)->get();
+            foreach($batchReports as $br) {
+                if ($br->file_path && $br->description !== 'Automated Case Submission') {
+                    $allUploadedFiles[] = [
+                        'id' => $br->id,
+                        'original_name' => $br->original_name,
+                        'category' => $br->clinical_data['file_category'] ?? 'General',
+                    ];
+                }
+            }
+
+            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdfs.case_submission', [
+                'batch_id' => $batchId,
+                'clinical_data' => $clinicalData,
+                'description' => $description,
+                'uploaded_files' => $allUploadedFiles,
+            ]);
+
+            $pdfFileName = 'Case_Submission_' . time() . '.pdf';
+            $pdfPath = 'reports/' . $pdfFileName;
+            Storage::disk('public')->put($pdfPath, $pdf->output());
+
+            Report::create(array_merge($reportAttributes, [
+                'title' => $patientName,
+                'description' => 'Automated Case Submission',
+                'file_path' => $pdfPath,
+                'original_name' => 'Case Submission.pdf',
+                'mime_type' => 'application/pdf',
+                'size' => Storage::disk('public')->size($pdfPath),
+                'folder_type' => 'user', // Ensure it goes to "Case Folder"
+                'status' => 'Pending',
+                'updated_by' => auth()->id(),
+            ]));
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('User Case PDF Generation failed: ' . $e->getMessage());
         }
 
         // Notify all staff about the new case
@@ -715,6 +759,7 @@ class ReportController extends Controller
                     'mime_type' => $file->getClientMimeType(),
                     'size' => $file->getSize(),
                     'status' => $existingReport->status,
+                    'folder_type' => 'additional_files',
                 ]);
                 
                 $uploadedFiles[] = $report;

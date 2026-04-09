@@ -166,6 +166,10 @@ Route::middleware(['auth', 'role:admin,assistant,admin_assistant'])
         Route::get('/export/assistants', [ExportController::class, 'assistants'])->name('export.assistants');
         Route::get('/export/visits', [ExportController::class, 'visits'])->name('export.visits');
 
+        Route::get('/analytics', [\App\Http\Controllers\Admin\AnalyticsController::class, 'index'])->name('analytics.index');
+        Route::get('/analytics/export', [\App\Http\Controllers\Admin\AnalyticsController::class, 'export'])->name('analytics.export');
+        Route::get('/analytics/user-activity/{user}', [\App\Http\Controllers\Admin\AnalyticsController::class, 'userActivity'])->name('analytics.user-activity');
+
         Route::get('/users', [UserController::class, 'index'])->name('users.index');
         Route::patch('/users/{user}/role', [UserController::class, 'updateRole'])->name('users.updateRole');
         Route::get('/users/{user}', [UserController::class, 'show'])->name('users.show');
@@ -258,12 +262,14 @@ Route::middleware(['auth'])
         Route::get('/case/{batchId}/chat/messages', [CaseChatController::class, 'messages'])->name('case.chat.messages');
         Route::post('/case/{batchId}/chat/send', [CaseChatController::class, 'send'])->name('case.chat.send');
         Route::post('/case/{batchId}/notes', [CaseNoteController::class, 'store'])->name('case.notes.store');
-        Route::post('/case-notes/{note}', [CaseNoteController::class, 'update'])->name('case.notes.update');
+        Route::put('/case-notes/{note}', [CaseNoteController::class, 'update'])->name('case.notes.update');
         Route::get('/case-notes/{note}/edit', [CaseNoteController::class, 'edit'])->name('case.notes.edit');
         Route::delete('/case-notes/{note}', [CaseNoteController::class, 'destroy'])->name('case.notes.destroy');
         Route::post('/case-files/{batch_id}/upload', [App\Http\Controllers\CaseFileController::class, 'store'])->name('case.files.upload');
         Route::patch('/case-files/{report}/rename', [App\Http\Controllers\CaseFileController::class, 'rename'])->name('case.files.rename');
         Route::delete('/case-files/{report}', [App\Http\Controllers\CaseFileController::class, 'destroy'])->name('case.files.destroy');
+        Route::get('/case-files/{report}/preview', [App\Http\Controllers\CaseFileController::class, 'preview'])->name('case.files.preview');
+        Route::get('/case-files/{report}/download', [App\Http\Controllers\CaseFileController::class, 'download'])->name('case.files.download');
         Route::post('/reports/{report}/generate-link', [UserReportController::class, 'generateFileLink'])->name('reports.generate-link');
         Route::post('/reports/batch/{batchId}/generate-link', [UserReportController::class, 'generateBatchLink'])->name('reports.batch.generate-link');
     });

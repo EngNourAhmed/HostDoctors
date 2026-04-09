@@ -193,11 +193,19 @@
                     'case_folder' => ['title' => 'Case Folder', 'icon' => 'M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z', 'color' => 'text-blue-400'],
                     'doctor_public' => ['title' => 'Admin Public', 'icon' => 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z', 'color' => 'text-[#FACC15]'],
                     'doctor_private' => ['title' => 'Admin Private', 'icon' => 'M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z', 'color' => 'text-red-400'],
+                    'additional_files' => ['title' => 'Additional Files', 'icon' => 'M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z', 'color' => 'text-emerald-400'],
                 ];
             @endphp
 
             @foreach($folders as $type => $info)
-                @php $folderFiles = $reports->where('folder_type', $type); @endphp
+                @php 
+                    $folderFiles = $reports->filter(function($r) use ($type) {
+                        if ($type === 'case_folder') {
+                            return $r->folder_type === 'case_folder' || $r->folder_type === 'user' || is_null($r->folder_type);
+                        }
+                        return $r->folder_type === $type;
+                    });
+                @endphp
                 @if($folderFiles->count() > 0)
                     <div class="mb-4">
                         <!-- Folder Header (Clickable) -->
@@ -490,9 +498,15 @@
                         </div>
 
                         <div class="flex justify-end pt-4">
-                            <button type="submit" 
-                                class="px-10 py-4 rounded-2xl bg-[#FACC15] border border-[#FACC15] text-sm font-black text-black hover:bg-[#FACC15]/90 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg shadow-yellow-400/20">
-                                SAVE CASE NOTE
+                            <button type="submit" id="save-note-btn"
+                                class="px-10 py-4 rounded-2xl bg-[#FACC15] border border-[#FACC15] text-sm font-black text-black hover:bg-[#FACC15]/90 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg shadow-yellow-400/20 flex items-center justify-center gap-2">
+                                <span class="btn-text">SAVE CASE NOTE</span>
+                                <div class="loading-spinner hidden">
+                                    <svg class="animate-spin h-5 w-5 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                </div>
                             </button>
                         </div>
                     </form>
@@ -550,7 +564,7 @@
             let editorInstance;
             ClassicEditor
                 .create(document.querySelector('#editor'), {
-                    toolbar: ['heading', '|', 'bold', 'italic', 'link', 'bulletedList', 'numberedList', 'blockQuote', 'insertTable', 'undo', 'redo'],
+                    toolbar: ['heading', '|', 'bold', 'italic', 'bulletedList', 'numberedList', 'blockQuote', 'insertTable', 'undo', 'redo'],
                     heading: {
                         options: [
                             { model: 'paragraph', title: 'Paragraph', class: 'ck-heading_paragraph' },
@@ -560,7 +574,7 @@
                     }
                 })
                 .then(editor => {
-                    editorInstance = editor;
+                    window.editorInstance = editor;
                     const form = document.querySelector('#add-note-section form');
                     if (form) {
                         form.addEventListener('submit', () => {
@@ -575,13 +589,37 @@
                     console.error(error);
                 });
 
+            function toggleAddNoteForm() {
+                const addNoteSection = document.getElementById('add-note-section');
+                const form = addNoteSection.querySelector('form');
+                const title = addNoteSection.querySelector('h3');
+                const submitBtn = addNoteSection.querySelector('button[type="submit"]');
+
+                if (addNoteSection.classList.contains('hidden')) {
+                    // Reset form for fresh note
+                    form.reset();
+                    if (editorInstance) editorInstance.setData('');
+                    form.action = `{{ route('case.notes.store', $batch_id) }}`;
+                    title.textContent = 'Add Case Note';
+                    submitBtn.textContent = 'SAVE CASE NOTE';
+                    
+                    const methodInput = form.querySelector('input[name="_method"]');
+                    if (methodInput) methodInput.remove();
+
+                    addNoteSection.classList.remove('hidden');
+                    addNoteSection.scrollIntoView({behavior: 'smooth'});
+                } else {
+                    addNoteSection.classList.add('hidden');
+                }
+            }
+
             function editNote(noteId) {
                 const addNoteSection = document.getElementById('add-note-section');
                 const form = addNoteSection.querySelector('form');
                 const title = addNoteSection.querySelector('h3');
                 const submitBtn = addNoteSection.querySelector('button[type="submit"]');
 
-                fetch(`/admin/case-notes/${noteId}/edit`)
+                fetch(`/case-notes/${noteId}/edit`)
                     .then(response => response.json())
                     .then(data => {
                         document.getElementById('subject').value = data.subject;
@@ -589,9 +627,11 @@
                             editorInstance.setData(data.message);
                         }
                         
-                        form.action = `/admin/case-notes/${noteId}`;
+                        form.action = `/case-notes/${noteId}`;
                         title.textContent = 'Edit Case Note';
                         submitBtn.textContent = 'UPDATE CASE NOTE';
+                        
+                        addNoteSection.classList.remove('hidden');
                         
                         if (!form.querySelector('input[name="_method"]')) {
                             const methodInput = document.createElement('input');
@@ -1034,6 +1074,47 @@
                     selectedFiles = [...selectedFiles, ...newFiles];
                     this.value = '';
                     renderPreview();
+                });
+            }
+
+            // 5. Case Note Functions
+            window.toggleAddNoteForm = function() {
+                const section = document.getElementById('add-note-section');
+                if (section) {
+                    section.classList.toggle('hidden');
+                    if (!section.classList.contains('hidden')) {
+                        section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        document.getElementById('subject').focus();
+                    }
+                }
+            };
+
+            const noteForm = document.querySelector('#add-note-section form');
+            if (noteForm) {
+                noteForm.addEventListener('submit', function(e) {
+                    // CkEditor validation
+                    // Sync editor data before validation
+                    if (window.editorInstance) {
+                        window.editorInstance.updateSourceElement();
+                    }
+                    
+                    const editorData = window.editorInstance ? window.editorInstance.getData() : '';
+                    if (!editorData.trim() || editorData === '<p>&nbsp;</p>') {
+                        e.preventDefault();
+                        if (window.showToast) {
+                            window.showToast('Please enter a message for the case note.', 'error');
+                        } else {
+                            alert('Please enter a message for the case note.');
+                        }
+                        return;
+                    }
+
+                    const btn = document.getElementById('save-note-btn');
+                    if (btn) {
+                        btn.disabled = true;
+                        btn.querySelector('.btn-text').textContent = 'SAVING...';
+                        btn.querySelector('.loading-spinner').classList.remove('hidden');
+                    }
                 });
             }
 

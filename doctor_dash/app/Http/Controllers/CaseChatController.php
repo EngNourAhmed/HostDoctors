@@ -51,6 +51,7 @@ class CaseChatController extends Controller
                     'mime_type' => $message->mime_type,
                     'is_self' => (String)$message->sender_id === (String)$user->id,
                     'created_at' => $message->created_at->format('Y-m-d h:i A'),
+                    'created_at_label' => $message->created_at->format('M d, Y h:i A'),
                 ];
             });
             

@@ -11,7 +11,9 @@ class Visit extends Model
 
     protected $fillable = [
         'user_id',
+        'is_login',
         'ip_address',
+        'country',
         'path',
         'user_agent',
     ];

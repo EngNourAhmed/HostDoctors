@@ -139,6 +139,7 @@ class ReportController extends Controller
                     'mime_type' => $mimeType,
                     'size' => $size,
                     'status' => 'Pending',
+                    'folder_type' => 'user',
                 ]);
 
                 $reports[] = $report;
@@ -180,6 +181,7 @@ class ReportController extends Controller
                         'mime_type' => 'application/pdf',
                         'size' => \Illuminate\Support\Facades\Storage::disk('public')->size($pdfPath),
                         'status' => 'Pending',
+                        'folder_type' => 'user',
                     ]);
                 } catch (\Exception $e) {
                     \Illuminate\Support\Facades\Log::error("PDF Generation failed: " . $e->getMessage());
@@ -432,6 +434,8 @@ class ReportController extends Controller
                     'size' => $file->getSize(),
                     'status' => $existingReport->status,
                     'is_reply' => true,
+                    'folder_type' => $request->folder_type ?? 'additional_files',
+                    'updated_by' => auth()->id(),
                 ]);
                 
                 $uploadedFiles[] = $report;
