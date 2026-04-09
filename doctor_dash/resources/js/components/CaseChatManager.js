@@ -52,8 +52,15 @@ export default class CaseChatManager {
         });
 
         if (this.attachButton && this.fileInput) {
-            this.attachButton.onclick = (e) => { e.preventDefault(); this.fileInput.click(); };
-            this.fileInput.onchange = (e) => this.handleFileSelect(e);
+            this.attachButton.onclick = (e) => { 
+                console.log('CaseChatManager: Attach button clicked');
+                e.preventDefault(); 
+                this.fileInput.click(); 
+            };
+            this.fileInput.onchange = (e) => {
+                console.log('CaseChatManager: Files selected', e.target.files);
+                this.handleFileSelect(e);
+            };
         }
 
         this.loadMessages();
@@ -227,12 +234,12 @@ export default class CaseChatManager {
     renderFilePreview() {
         if (!this.filePreview) return;
         if (this.pendingFiles.length === 0) {
-            this.filePreview.style.display = 'none';
+            this.filePreview.classList.add('hidden');
             this.filePreview.innerHTML = '';
             return;
         }
 
-        this.filePreview.style.display = 'block';
+        this.filePreview.classList.remove('hidden');
         this.filePreview.innerHTML = `
             <div class="flex flex-wrap gap-3 p-4 bg-black/60 rounded-2xl border border-white/10 shadow-2xl backdrop-blur-md">
                 ${this.pendingFiles.map((file, i) => {
