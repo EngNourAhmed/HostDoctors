@@ -313,3 +313,9 @@ Route::get('/storage/{path}', function (string $path) {
         'Cache-Control' => 'public, max-age=86400',
     ]);
 })->where('path', '.*');
+
+// Temporary route to clear cache on host
+Route::get('/clear-cache', function() {
+    \Illuminate\Support\Facades\Artisan::call('optimize:clear');
+    return 'Cache cleared successfully!';
+});

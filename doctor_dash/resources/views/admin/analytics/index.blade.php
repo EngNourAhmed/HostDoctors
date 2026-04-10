@@ -158,7 +158,7 @@
     </div>
 
     <!-- Row 4: User Engagement Analysis -->
-    <div class="bg-[#0c0c0c]/60 backdrop-blur-xl border border-white/5 rounded-[40px] p-8 lg:p-12 overflow-hidden shadow-2xl pb-10">
+    <div class="bg-[#0c0c0c]/60 backdrop-blur-xl border border-white/5 rounded-[40px] p-8 lg:p-12 overflow-hidden shadow-2xl pb-10 min-h-[600px] flex flex-col justify-start">
         <div class="flex items-center justify-between mb-12">
             <div>
                 <h3 class="text-xl font-black text-white uppercase tracking-widest">User Engagement Analysis</h3>
