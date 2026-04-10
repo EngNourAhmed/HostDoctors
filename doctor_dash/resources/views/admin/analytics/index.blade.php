@@ -234,7 +234,7 @@
     <!-- User Activity Modal -->
     <div id="activityModal" class="fixed inset-0 z-[100] hidden items-center justify-center p-4">
         <div class="absolute inset-0 bg-black/80 backdrop-blur-md opacity-0 transition-opacity duration-500 activity-modal-backdrop"></div>
-        <div class="relative w-full max-w-5xl bg-[#0c0c0c] rounded-[40px] border-[3px] border-white/20 shadow-[0_0_50px_rgba(0,0,0,0.5)] overflow-hidden pointer-events-none scale-95 opacity-0 transition-all duration-500 ease-out activity-modal-container flex flex-col h-[95vh]">
+        <div class="relative w-full max-w-4xl bg-[#0c0c0c] rounded-[30px] border border-white/10 shadow-[0_0_40px_rgba(0,0,0,0.6)] overflow-hidden pointer-events-none scale-95 opacity-0 transition-all duration-500 ease-out activity-modal-container flex flex-col max-h-[80vh]">
             <!-- Modal Header -->
             <div class="p-8 border-b border-white/5 flex items-center justify-between bg-black/40">
                 <div class="flex items-center gap-6">
