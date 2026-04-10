@@ -27,8 +27,8 @@ class DashboardController extends Controller
         $totalUsers = User::count();
         $totalAdmins = User::where('role', 'admin')->count();
 
-        $totalVisits = Visit::whereNotNull('user_id')->where('path', '!=', 'auth/status')->count();
-        $todayVisits = Visit::whereNotNull('user_id')->where('path', '!=', 'auth/status')
+        $totalVisits = Visit::whereNotNull('user_id')->where('is_login', true)->count();
+        $todayVisits = Visit::whereNotNull('user_id')->where('is_login', true)
             ->whereDate('created_at', now()->toDateString())
             ->count();
 
@@ -47,20 +47,20 @@ class DashboardController extends Controller
 
     public function stats()
     {
-        $totalVisits = Visit::whereNotNull('user_id')->count();
-        $todayVisits = Visit::whereNotNull('user_id')->whereDate('created_at', now()->toDateString())->count();
+        $totalVisits = Visit::whereNotNull('user_id')->where('is_login', true)->count();
+        $todayVisits = Visit::whereNotNull('user_id')->where('is_login', true)->whereDate('created_at', now()->toDateString())->count();
 
-        $dashboardVisits = Visit::whereNotNull('user_id')->where('path', 'like', 'admin%')->count();
+        $dashboardVisits = Visit::whereNotNull('user_id')->where('is_login', true)->where('path', 'like', 'admin%')->count();
         $websiteVisits = $totalVisits - $dashboardVisits;
 
-        $todayDashboardVisits = Visit::whereNotNull('user_id')->where('path', 'like', 'admin%')
+        $todayDashboardVisits = Visit::whereNotNull('user_id')->where('is_login', true)->where('path', 'like', 'admin%')
             ->whereDate('created_at', now()->toDateString())
             ->count();
         $todayWebsiteVisits = $todayVisits - $todayDashboardVisits;
 
         $last7Days = Visit::whereNotNull('user_id')
+            ->where('is_login', true)
             ->selectRaw('DATE(created_at) as date, COUNT(*) as count')
-            ->where('path', '!=', 'auth/status')
             ->groupBy('date')
             ->orderBy('date', 'desc')
             ->limit(7)
