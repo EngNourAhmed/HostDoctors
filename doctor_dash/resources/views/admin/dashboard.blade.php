@@ -109,7 +109,7 @@
         <div class="bh-card p-7 md:p-8 flex flex-col justify-between">
             <div class="flex items-start justify-between">
                 <div>
-                    <p class="text-xs md:text-sm uppercase tracking-[0.2em] text-slate-400 font-bold whitespace-nowrap">Visits (Today)</p>
+                    <p class="text-xs md:text-sm uppercase tracking-[0.2em] text-slate-400 font-bold">Visits (Today)</p>
                     <p class="mt-3 text-4xl md:text-5xl font-bold">{{ $todayVisits }}</p>
                     <p class="mt-2 text-xs font-semibold text-slate-400">Total: {{ $totalVisits }}</p>
                 </div>
