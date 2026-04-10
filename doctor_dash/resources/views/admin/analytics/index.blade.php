@@ -229,6 +229,8 @@
                 </tbody>
             </table>
         </div>
+    </div>
+    
     <!-- User Activity Modal -->
     <div id="activityModal" class="fixed inset-0 z-[100] hidden items-center justify-center p-4">
         <div class="absolute inset-0 bg-black/80 backdrop-blur-md opacity-0 transition-opacity duration-500 activity-modal-backdrop"></div>
