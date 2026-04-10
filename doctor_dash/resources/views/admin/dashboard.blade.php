@@ -120,7 +120,7 @@
                 </div>
             </div>
             <div class="mt-6 flex gap-3 text-xs">
-                <a href="{{ route('admin.stats') }}"
+                <a href="{{ route('admin.analytics.index') }}"
                     class="inline-flex items-center justify-center rounded-full border border-slate-600/70 px-4 py-2 text-sm font-semibold text-slate-200 hover:border-amber-400 hover:text-amber-300 transition-colors">
                     View analytics
                 </a>

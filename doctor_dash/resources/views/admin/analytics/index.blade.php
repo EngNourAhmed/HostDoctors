@@ -250,7 +250,7 @@
             </div>
             
             <!-- Modal Content -->
-            <div class="flex-1 overflow-y-auto p-8 bh-scrollbar-sleek">
+            <div class="flex-1 min-h-0 overflow-y-auto p-8 bh-scrollbar-sleek">
                 <div id="activityLoading" class="flex flex-col items-center justify-center py-20 space-y-4">
                     <div class="premium-spinner border-t-[#FACC15]"></div>
                     <p class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Retrieving logs...</p>
@@ -422,19 +422,19 @@ function viewUserActivity(userId) {
                 data.activities.forEach(activity => {
                     const row = `
                         <tr class="group hover:bg-white/[0.02] transition-colors">
-                            <td class="py-5">
+                            <td class="py-6">
                                 <p class="text-xs font-black text-white uppercase tracking-wider">${activity.date}</p>
                                 <p class="text-[9px] text-slate-500 font-bold uppercase tracking-widest mt-0.5">${activity.time_ago}</p>
                             </td>
-                            <td class="py-5">
+                            <td class="py-6">
                                 <span class="px-3 py-1 rounded-lg bg-white/5 border border-white/5 text-[10px] font-black text-slate-300 uppercase tracking-widest truncate max-w-[200px] inline-block">
                                     ${activity.page}
                                 </span>
                             </td>
-                            <td class="py-5">
+                            <td class="py-6">
                                 <code class="text-[10px] font-mono text-slate-400 font-bold">${activity.ip}</code>
                             </td>
-                            <td class="py-5 text-right">
+                            <td class="py-6 text-right">
                                 <span class="text-[10px] font-black text-blue-400 uppercase tracking-widest">${activity.location}</span>
                             </td>
                         </tr>
