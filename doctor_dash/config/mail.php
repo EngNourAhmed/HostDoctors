@@ -130,6 +130,6 @@ return [
     |
     */
 
-    'analytics_report_recipient' => env('ANALYTICS_REPORT_EMAIL', 'info@bone-hard.com'),
+    'analytics_report_recipient' => env('ANALYTICS_REPORT_EMAIL', env('MAIL_FROM_ADDRESS', 'info@bone-hard.com')),
 
 ];
