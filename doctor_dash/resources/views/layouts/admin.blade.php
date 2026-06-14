@@ -378,10 +378,10 @@
                     </div>
                     <span class="text-sm font-semibold">Admin</span>
                 </div>
-                <div class="hidden md:flex flex-1 items-center justify-between ml-4">
-                    <h1 class="text-base md:text-lg font-semibold tracking-wide text-slate-200">@yield('header', 'Dashboard')</h1>
+                <div class="hidden md:flex flex-1 items-center justify-between ml-4 min-w-0">
+                    <h1 class="text-base md:text-lg font-semibold tracking-wide text-slate-200 truncate">@yield('header', 'Dashboard')</h1>
                 </div>
-                <div class="flex items-center gap-3 text-sm md:text-base ml-auto flex-nowrap whitespace-nowrap">
+                <div class="flex items-center gap-1.5 md:gap-3 text-sm md:text-base ml-auto flex-nowrap shrink-0">
                     @auth
                         @php
                             $__user = auth()->user();
@@ -399,39 +399,44 @@
                         @endphp
 
                         <!-- Case Chat Notifications Button -->
-                        <button id="bh-messages-btn-header" class="relative h-10 w-10 rounded-full bg-slate-700 hover:bg-slate-600 flex items-center justify-center transition-all duration-200">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-white">
+                        <button id="bh-messages-btn-header" class="relative h-9 w-9 md:h-10 md:w-10 rounded-full bg-slate-700 hover:bg-slate-600 flex items-center justify-center transition-all duration-200 shrink-0">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-white md:w-5 md:h-5">
                                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
                             </svg>
                             @if($__unreadCaseChatNotifications > 0)
-                                <span class="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
+                                <span class="absolute -top-1 -right-1 h-4 w-4 md:h-5 md:w-5 rounded-full bg-red-500 text-white text-[9px] md:text-[10px] font-bold flex items-center justify-center">
                                     {{ $__unreadCaseChatNotifications }}
                                 </span>
                             @endif
                         </button>
 
                         <!-- New Case Notifications Button -->
-                        <button id="bh-notifications-btn-header" class="relative h-10 w-10 rounded-full bg-slate-700 hover:bg-slate-600 flex items-center justify-center transition-all duration-200">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-white">
+                        <button id="bh-notifications-btn-header" class="relative h-9 w-9 md:h-10 md:w-10 rounded-full bg-slate-700 hover:bg-slate-600 flex items-center justify-center transition-all duration-200 shrink-0">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-white md:w-5 md:h-5">
                                 <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/>
                                 <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>
                             </svg>
                             @if($__unreadNewCaseNotifications > 0)
-                                <span class="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
+                                <span class="absolute -top-1 -right-1 h-4 w-4 md:h-5 md:w-5 rounded-full bg-red-500 text-white text-[9px] md:text-[10px] font-bold flex items-center justify-center">
                                     {{ $__unreadNewCaseNotifications }}
                                 </span>
                             @endif
                         </button>
 
                         <span class="hidden sm:inline text-slate-300 text-sm font-medium mr-2">{{ auth()->user()->name }}</span>
-                        <a href="{{ url('/') }}" target="_blank"
-                            class="rounded-lg border border-white/20 bg-white/5 px-4 py-2 text-xs font-semibold text-white hover:bg-white/10 hover:border-white/40 transition-all outline-none shrink-0 flex items-center justify-center">Back
-                            to site</a>
-                        <form action="{{ route('logout') }}" method="POST" class="m-0 p-0 inline-flex shrink-0">
-                            @csrf
-                            <button type="submit"
-                                class="rounded-lg border border-white/20 bg-white/5 px-4 py-2 text-xs font-semibold text-white hover:bg-white/10 hover:border-white/40 transition-all outline-none flex items-center justify-center">Logout</button>
-                        </form>
+                        
+                        <div class="flex items-center gap-2">
+                            <a href="{{ url('/') }}" target="_blank"
+                                class="rounded-lg border border-white/20 bg-white/5 px-2 py-1.5 md:px-4 md:py-2 text-[10px] md:text-xs font-semibold text-white hover:bg-white/10 hover:border-white/40 transition-all outline-none shrink-0 flex items-center justify-center">
+                                <span class="hidden xs:inline">Back</span>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="xs:hidden"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                            </a>
+                            <form action="{{ route('logout') }}" method="POST" class="m-0 p-0 inline-flex shrink-0">
+                                @csrf
+                                <button type="submit"
+                                    class="rounded-lg border border-white/20 bg-white/5 px-2 py-1.5 md:px-4 md:py-2 text-[10px] md:text-xs font-semibold text-white hover:bg-white/10 hover:border-white/40 transition-all outline-none flex items-center justify-center">Logout</button>
+                            </form>
+                        </div>
                     @endauth
                 </div>
             </header>
@@ -452,8 +457,8 @@
     <!-- Premium File Preview Modal -->
     <div id="bh-preview-modal" class="fixed inset-0 z-[100] hidden items-center justify-center p-4">
         <div id="bh-modal-backdrop" class="absolute inset-0 bg-black/80 backdrop-blur-md opacity-0 transition-opacity duration-500"></div>
-        <div id="bh-modal-container" class="relative w-full flex flex-col bg-[#0c0c0c] rounded-3xl border border-white/10 shadow-2xl overflow-hidden pointer-events-none scale-95 opacity-0 transition-all duration-500 ease-out" style="max-width: 1000px; height: 85vh;">
-            <div class="flex items-center justify-between p-5 border-b border-white/5 shrink-0 bg-black/40">
+        <div id="bh-modal-container" class="relative w-full max-w-[1000px] h-[95vh] md:h-[85vh] flex flex-col bg-[#0c0c0c] rounded-[2rem] md:rounded-3xl border border-white/10 shadow-2xl overflow-hidden pointer-events-none scale-95 opacity-0 transition-all duration-500 ease-out">
+            <div class="flex items-center justify-between p-4 md:p-5 border-b border-white/5 shrink-0 bg-black/40">
                 <div class="flex items-center gap-4 min-w-0">
                     <div class="h-11 w-11 shrink-0 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-amber-500 shadow-inner">
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-file-text"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg>
@@ -464,9 +469,9 @@
                     </div>
                 </div>
                 <div class="flex items-center gap-3 ml-4">
-                    <a id="bh-modal-download" href="#" class="inline-flex items-center gap-2.5 px-4 py-2 rounded-xl bg-white text-[12px] font-bold text-black hover:bg-amber-400 transition-all duration-300 shadow-lg hover:shadow-amber-400/20 active:scale-95">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-download text-black"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
-                        Download
+                    <a id="bh-modal-download" href="#" class="inline-flex items-center gap-2 px-3 py-2 md:px-4 md:py-2 rounded-xl bg-white text-[10px] md:text-[12px] font-bold text-black hover:bg-amber-400 transition-all duration-300 shadow-lg hover:shadow-amber-400/20 active:scale-95">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-download text-black md:w-4 md:h-4"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+                        <span class="hidden xs:inline">Download</span>
                     </a>
                     <button id="bh-modal-close" class="h-10 w-10 flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 rounded-xl transition-all duration-200">
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-x"><path d="M18 6 6 18"/><path d="M6 6l12 12"/></svg>
@@ -630,7 +635,7 @@
         
 
         <!-- Case Submission Notifications Popup -->
-        <div id="bh-notifications-popup" class="fixed bottom-24 right-6 z-50 w-96 max-h-[600px] bg-[#0c0c0c] rounded-2xl border border-white/10 shadow-2xl hidden flex-col overflow-hidden">
+        <div id="bh-notifications-popup" class="fixed bottom-20 md:bottom-24 right-4 md:right-6 z-50 w-[calc(100vw-2rem)] md:w-96 max-h-[70vh] md:max-h-[600px] bg-[#0c0c0c] rounded-2xl border border-white/10 shadow-2xl hidden flex-col overflow-hidden">
             <div class="p-4 border-b border-white/10 flex items-center justify-between bg-black/40">
                 <h3 class="text-lg font-bold text-white">New Cases</h3>
                 <button id="bh-notifications-close" class="text-slate-400 hover:text-white transition-colors">
@@ -770,8 +775,8 @@
         @endphp
 
         <!-- Case Chat Notifications Dropdown -->
-        <div id="bh-messages-dropdown" class="fixed top-16 right-32 z-[60] w-[400px] bg-[#0c0c0c] rounded-2xl border border-white/10 shadow-2xl hidden flex-col overflow-hidden transform origin-top-right transition-all duration-200 scale-95 opacity-0">
-            <div class="p-5 border-b border-white/10">
+        <div id="bh-messages-dropdown" class="fixed top-16 right-4 md:right-32 z-[60] w-[calc(100vw-2rem)] md:w-[400px] bg-[#0c0c0c] rounded-2xl border border-white/10 shadow-2xl hidden flex-col overflow-hidden transform origin-top-right transition-all duration-200 scale-95 opacity-0">
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        <div class="p-5 border-b border-white/10">
                 <div class="flex items-center justify-between mb-4">
                     <h3 class="text-2xl font-bold text-white">Case Messages</h3>
                     <div class="relative">

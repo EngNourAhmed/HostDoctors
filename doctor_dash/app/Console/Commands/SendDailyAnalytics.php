@@ -22,7 +22,7 @@ class SendDailyAnalytics extends Command
      *
      * @var string
      */
-    protected $description = 'Generate and send the daily analytics PDF report to info@bone-hard.com';
+    protected $description = 'Generate and send the daily analytics PDF report';
 
     /**
      * Execute the console command.
@@ -39,13 +39,14 @@ class SendDailyAnalytics extends Command
             $pdfContent = Pdf::loadView('pdfs.analytics_report', compact('stats'))->output();
 
             // Send Email
-            Mail::to('info@bone-hard.com')->send(new DailyAnalyticsMail($pdfContent, $date));
+            $recipient = config('mail.analytics_report_recipient');
+            Mail::to($recipient)->send(new DailyAnalyticsMail($pdfContent, $date));
 
             // Notify Admin Users in Dashboard
             $admins = \App\Models\User::whereIn('role', ['admin', 'assistant', 'admin_assistant'])->get();
             \Illuminate\Support\Facades\Notification::send($admins, new \App\Notifications\DailyAnalyticsSent($date));
 
-            $this->info('Daily analytics report sent successfully to info@bone-hard.com');
+            $this->info("Daily analytics report sent successfully to {$recipient}");
         } catch (\Exception $e) {
             $this->error('Failed to send daily analytics: ' . $e->getMessage());
             return 1;

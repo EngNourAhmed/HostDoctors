@@ -15,9 +15,9 @@
         </a>
     </div>
 
-    <div class="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+    <div class="grid gap-4 md:gap-6 md:grid-cols-2 xl:grid-cols-3">
         {{-- Total Users Card --}}
-        <div class="bh-card p-7 md:p-8 flex flex-col justify-between">
+        <div class="bh-card p-5 md:p-8 flex flex-col justify-between">
             <div class="flex items-start justify-between">
                 <div>
                     <p class="text-xs md:text-sm uppercase tracking-[0.2em] text-slate-400 font-bold">Total Users</p>
@@ -41,7 +41,7 @@
         </div>
 
         {{-- Pending Cases Card --}}
-        <div class="bh-card p-7 md:p-8 flex flex-col justify-between border-amber-500/30 bg-amber-500/5">
+        <div class="bh-card p-5 md:p-8 flex flex-col justify-between border-amber-500/30 bg-amber-500/5">
             <div class="flex items-start justify-between">
                 <div>
                     <p class="text-xs md:text-sm uppercase tracking-[0.2em] text-amber-500/80 font-bold">Pending Cases</p>
@@ -62,7 +62,7 @@
         </div>
 
         {{-- All Other Cases Card --}}
-        <div class="bh-card p-7 md:p-8 flex flex-col justify-between border-emerald-500/30 bg-emerald-500/5">
+        <div class="bh-card p-5 md:p-8 flex flex-col justify-between border-emerald-500/30 bg-emerald-500/5">
             <div class="flex items-start justify-between">
                 <div>
                     <p class="text-xs md:text-sm uppercase tracking-[0.2em] text-emerald-500/80 font-bold">Other Cases</p>
@@ -83,7 +83,7 @@
         </div>
 
         {{-- Admins Card --}}
-        <div class="bh-card p-7 md:p-8 flex flex-col justify-between">
+        <div class="bh-card p-5 md:p-8 flex flex-col justify-between">
             <div class="flex items-start justify-between">
                 <div>
                     <p class="text-xs md:text-sm uppercase tracking-[0.2em] text-slate-400 font-bold">Admins</p>
@@ -106,7 +106,7 @@
 
 
         {{-- Visits Card --}}
-        <div class="bh-card p-7 md:p-8 flex flex-col justify-between">
+        <div class="bh-card p-5 md:p-8 flex flex-col justify-between">
             <div class="flex items-start justify-between">
                 <div>
                     <p class="text-xs md:text-sm uppercase tracking-[0.2em] text-slate-400 font-bold">Visits (Today)</p>

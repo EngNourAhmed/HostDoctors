@@ -302,12 +302,12 @@
                     <div class="h-8 w-8 rounded-xl bg-slate-900/80 border border-amber-400/70 flex items-center justify-center overflow-hidden">
                         <img src="{{ asset('images/favicon.png') }}" alt="BoneHard User" class="h-7 w-7 object-contain" />
                     </div>
-                    <span class="text-sm font-semibold">User</span>
+                    <span class="text-sm font-semibold hidden xs:inline">User</span>
                 </div>
-                <div class="hidden md:block">
-                    <h1 class="text-base md:text-lg font-semibold tracking-wide text-slate-200">@yield('header', 'Dashboard')</h1>
+                <div class="hidden md:block min-w-0 flex-1 ml-4">
+                    <h1 class="text-base md:text-lg font-semibold tracking-wide text-slate-200 truncate">@yield('header', 'Dashboard')</h1>
                 </div>
-                <div class="flex items-center gap-4 text-sm md:text-base">
+                <div class="flex items-center gap-1.5 md:gap-4 text-sm md:text-base ml-auto flex-nowrap shrink-0">
                     @auth
                         @php
                             $__currentUser = auth()->user();
@@ -345,13 +345,13 @@
                         @endphp
 
                          <!-- Messages Button -->
-                        <button id="bh-messages-btn-header" class="relative h-10 w-10 rounded-full bg-slate-700 hover:bg-slate-600 flex items-center justify-center transition-all duration-200">
+                        <button id="bh-messages-btn-header" class="relative h-9 w-9 md:h-10 md:w-10 rounded-full bg-slate-700 hover:bg-slate-600 flex items-center justify-center transition-all duration-200 shrink-0">
                             <div class="relative">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-white">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-white md:w-5 md:h-5">
                                     <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
                                 </svg>
                                 @if($__unreadUserMessages > 0)
-                                    <span class="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
+                                    <span class="absolute -top-1 -right-1 h-4 w-4 md:h-5 md:w-5 rounded-full bg-red-500 text-white text-[9px] md:text-[10px] font-bold flex items-center justify-center">
                                         {{ $__unreadUserMessages }}
                                     </span>
                                 @endif
@@ -359,14 +359,14 @@
                         </button>
 
                         <!-- Notifications Button -->
-                        <button id="bh-notifications-btn-header" class="relative h-10 w-10 rounded-full bg-slate-700 hover:bg-slate-600 flex items-center justify-center transition-all duration-200">
+                        <button id="bh-notifications-btn-header" class="relative h-9 w-9 md:h-10 md:w-10 rounded-full bg-slate-700 hover:bg-slate-600 flex items-center justify-center transition-all duration-200 shrink-0">
                             <div class="relative">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-white">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-white md:w-5 md:h-5">
                                     <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/>
                                     <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>
                                 </svg>
                                 @if($__unreadNotificationsCount > 0)
-                                    <span class="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
+                                    <span class="absolute -top-1 -right-1 h-4 w-4 md:h-5 md:w-5 rounded-full bg-red-500 text-white text-[9px] md:text-[10px] font-bold flex items-center justify-center">
                                         {{ $__unreadNotificationsCount }}
                                     </span>
                                 @endif
@@ -374,14 +374,19 @@
                         </button>
 
                         <span class="hidden sm:inline text-slate-300 text-sm md:text-base">{{ auth()->user()->name }}</span>
-                        <a href="{{ url('/') }}" target="_blank"
-                            class="rounded-lg border border-white/20 bg-white/5 px-3 py-1.5 text-xs font-semibold text-white hover:bg-white/10 hover:border-white/40 transition-all outline-none">Back
-                            to site</a>
-                        <form action="{{ route('logout') }}" method="POST">
-                            @csrf
-                            <button type="submit"
-                                class="rounded-lg border border-white/20 bg-white/5 px-3 py-1.5 text-xs font-semibold text-white hover:bg-white/10 hover:border-white/40 transition-all outline-none">Logout</button>
-                        </form>
+                        
+                        <div class="flex items-center gap-2">
+                            <a href="{{ url('/') }}" target="_blank"
+                                class="rounded-lg border border-white/20 bg-white/5 px-2 py-1.5 md:px-3 md:py-1.5 text-[10px] md:text-sm font-semibold text-white hover:bg-white/10 hover:border-white/40 transition-all outline-none shrink-0 flex items-center justify-center">
+                                <span class="hidden xs:inline">Back</span>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="xs:hidden"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                            </a>
+                            <form action="{{ route('logout') }}" method="POST" class="m-0 p-0 inline-flex shrink-0">
+                                @csrf
+                                <button type="submit"
+                                    class="rounded-lg border border-white/20 bg-white/5 px-2 py-1.5 md:px-3 md:py-1.5 text-[10px] md:text-sm font-semibold text-white hover:bg-white/10 hover:border-white/40 transition-all outline-none flex items-center justify-center">Logout</button>
+                            </form>
+                        </div>
                     @endauth
                     @guest
                         <a href="{{ route('login') }}"
@@ -405,8 +410,8 @@
     <!-- Premium File Preview Modal -->
     <div id="bh-preview-modal" class="fixed inset-0 z-[100] hidden items-center justify-center p-4">
         <div id="bh-modal-backdrop" class="absolute inset-0 bg-black/80 backdrop-blur-md opacity-0 transition-opacity duration-500"></div>
-        <div id="bh-modal-container" class="relative w-full flex flex-col bg-[#0c0c0c] rounded-3xl border border-white/10 shadow-2xl overflow-hidden pointer-events-none scale-95 opacity-0 transition-all duration-500 ease-out" style="max-width: 1000px; height: 85vh;">
-            <div class="flex items-center justify-between p-5 border-b border-white/5 shrink-0 bg-black/40">
+        <div id="bh-modal-container" class="relative w-full max-w-[1000px] h-[95vh] md:h-[85vh] flex flex-col bg-[#0c0c0c] rounded-[2rem] md:rounded-3xl border border-white/10 shadow-2xl overflow-hidden pointer-events-none scale-95 opacity-0 transition-all duration-500 ease-out">
+            <div class="flex items-center justify-between p-4 md:p-5 border-b border-white/5 shrink-0 bg-black/40">
                 <div class="flex items-center gap-4 min-w-0">
                     <div class="h-11 w-11 shrink-0 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-amber-400 shadow-inner">
                         <i data-lucide="file-text" class="w-6 h-6"></i>
@@ -417,9 +422,9 @@
                     </div>
                 </div>
                 <div class="flex items-center gap-3 ml-4">
-                    <a id="bh-modal-download" href="#" class="inline-flex items-center gap-2.5 px-4 py-2 rounded-xl bg-white text-[12px] font-bold text-black hover:bg-amber-400 transition-all duration-300 shadow-lg hover:shadow-amber-400/20 active:scale-95">
+                    <a id="bh-modal-download" href="#" class="inline-flex items-center gap-2 px-3 py-2 md:px-4 md:py-2 rounded-xl bg-white text-[10px] md:text-[12px] font-bold text-black hover:bg-amber-400 transition-all duration-300 shadow-lg hover:shadow-amber-400/20 active:scale-95">
                         <i data-lucide="download" class="w-4 h-4 text-black"></i>
-                        Download
+                        <span class="hidden xs:inline">Download</span>
                     </a>
                     <button id="bh-modal-close" class="h-10 w-10 flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 rounded-xl transition-all duration-200">
                         <i data-lucide="x" class="w-6 h-6"></i>
@@ -597,8 +602,7 @@
     </script>
     <!-- Fixed Floating Buttons -->
     @auth
-                <!-- Case Chat Notifications Dropdown -->
-        <div id="bh-messages-dropdown" class="fixed top-16 right-32 z-[60] w-[400px] max-h-[80vh] bg-[#0c0c0c] rounded-2xl border border-white/10 shadow-2xl hidden flex-col overflow-hidden transform origin-top-right transition-all duration-200 scale-95 opacity-0">
+        <div id="bh-messages-dropdown" class="fixed top-16 z-[60] w-[calc(100vw-2rem)] md:w-[400px] max-h-[80vh] bg-[#0c0c0c] rounded-2xl border border-white/10 shadow-2xl hidden flex-col overflow-hidden transform origin-top transition-all duration-200 scale-95 opacity-0">
             <div class="p-5 border-b border-white/10">
                 <div class="flex items-center justify-between mb-4">
                     <h3 class="text-2xl font-bold text-white">Case Messages</h3>
@@ -676,7 +680,7 @@
         </div>
 
         <!-- Notifications Dropdown -->
-        <div id="bh-notifications-dropdown" class="fixed top-16 right-20 z-[60] w-[360px] max-h-[80vh] bg-[#0c0c0c] rounded-xl border border-white/10 shadow-2xl hidden flex-col overflow-hidden transform origin-top-right transition-all duration-200 scale-95 opacity-0">
+        <div id="bh-notifications-dropdown" class="fixed top-16 z-[60] w-[calc(100vw-2rem)] md:w-[360px] max-h-[80vh] bg-[#0c0c0c] rounded-xl border border-white/10 shadow-2xl hidden flex-col overflow-hidden transform origin-top transition-all duration-200 scale-95 opacity-0">
             <div class="p-4 border-b border-white/10">
                 <div class="flex items-center justify-between mb-3">
                     <h3 class="text-xl font-bold text-white">Notifications</h3>
@@ -762,7 +766,7 @@
         </div>
 
         <!-- Chat Window Modal -->
-        <div id="bh-chat-window" class="fixed bottom-4 right-4 z-[70] w-[400px] h-[600px] bg-[#0c0c0c] rounded-2xl border border-white/10 shadow-2xl hidden flex-col overflow-hidden">
+        <div id="bh-chat-window" class="fixed bottom-4 right-4 z-[70] w-[calc(100vw-2rem)] md:w-[400px] h-[70vh] md:h-[600px] bg-[#0c0c0c] rounded-2xl border border-white/10 shadow-2xl hidden flex-col overflow-hidden">
             <!-- Chat Header -->
             <div class="p-4 border-b border-white/10 bg-gradient-to-r from-[#0c0c0c] to-[#111111] flex items-center justify-between">
                 <div class="flex items-center gap-3">
@@ -839,32 +843,49 @@
                 const notificationsBtnHeader = document.getElementById('bh-notifications-btn-header');
                 const notificationsDropdown = document.getElementById('bh-notifications-dropdown');
 
+                // Toggle Logic Function
+                function toggleDropdown(btn, menu, otherMenu) {
+                    if (!btn || !menu) return;
+                    
+                    const isHidden = menu.classList.contains('hidden');
+                    
+                    // Close other menu if open
+                    if (otherMenu) {
+                        otherMenu.classList.add('hidden');
+                        otherMenu.classList.add('scale-95', 'opacity-0');
+                        otherMenu.classList.remove('scale-100', 'opacity-100');
+                    }
+                    
+                    if (isHidden) {
+                        // Position logic
+                        const rect = btn.getBoundingClientRect();
+                        const menuWidth = 400; // Expected max width
+                        const leftPos = rect.left + rect.width / 2 - menuWidth / 2;
+                        
+                        menu.style.width = window.innerWidth < 768 ? 'calc(100vw - 2rem)' : (menu.id === 'bh-notifications-dropdown' ? '360px' : '400px');
+                        menu.style.left = window.innerWidth < 768 ? '1rem' : `${Math.min(window.innerWidth - (menu.id === 'bh-notifications-dropdown' ? 380 : 420), Math.max(20, leftPos))}px`;
+                        
+                        menu.classList.remove('hidden');
+                        menu.classList.add('flex');
+                        setTimeout(() => {
+                            menu.classList.remove('scale-95', 'opacity-0');
+                            menu.classList.add('scale-100', 'opacity-100');
+                        }, 10);
+                    } else {
+                        menu.classList.add('scale-95', 'opacity-0');
+                        menu.classList.remove('scale-100', 'opacity-100');
+                        setTimeout(() => {
+                            menu.classList.add('hidden');
+                            menu.classList.remove('flex');
+                        }, 200);
+                    }
+                }
+
                 // Toggle messages dropdown
                 if (messagesBtnHeader && messagesDropdown) {
                     messagesBtnHeader.addEventListener('click', (e) => {
                         e.stopPropagation();
-                        const isHidden = messagesDropdown.classList.contains('hidden');
-                        
-                        // Close notifications
-                        notificationsDropdown.classList.add('hidden');
-                        notificationsDropdown.classList.add('scale-95', 'opacity-0');
-                        notificationsDropdown.classList.remove('scale-100', 'opacity-100');
-                        
-                        if (isHidden) {
-                            messagesDropdown.classList.remove('hidden');
-                            messagesDropdown.classList.add('flex');
-                            setTimeout(() => {
-                                messagesDropdown.classList.remove('scale-95', 'opacity-0');
-                                messagesDropdown.classList.add('scale-100', 'opacity-100');
-                            }, 10);
-                        } else {
-                            messagesDropdown.classList.add('scale-95', 'opacity-0');
-                            messagesDropdown.classList.remove('scale-100', 'opacity-100');
-                            setTimeout(() => {
-                                messagesDropdown.classList.add('hidden');
-                                messagesDropdown.classList.remove('flex');
-                            }, 200);
-                        }
+                        toggleDropdown(messagesBtnHeader, messagesDropdown, notificationsDropdown);
                     });
                 }
 
@@ -922,28 +943,7 @@
                 if (notificationsBtnHeader && notificationsDropdown) {
                     notificationsBtnHeader.addEventListener('click', (e) => {
                         e.stopPropagation();
-                        const isHidden = notificationsDropdown.classList.contains('hidden');
-                        
-                        // Close messages
-                        messagesDropdown.classList.add('hidden');
-                        messagesDropdown.classList.add('scale-95', 'opacity-0');
-                        messagesDropdown.classList.remove('scale-100', 'opacity-100');
-                        
-                        if (isHidden) {
-                            notificationsDropdown.classList.remove('hidden');
-                            notificationsDropdown.classList.add('flex');
-                            setTimeout(() => {
-                                notificationsDropdown.classList.remove('scale-95', 'opacity-0');
-                                notificationsDropdown.classList.add('scale-100', 'opacity-100');
-                            }, 10);
-                        } else {
-                            notificationsDropdown.classList.add('scale-95', 'opacity-0');
-                            notificationsDropdown.classList.remove('scale-100', 'opacity-100');
-                            setTimeout(() => {
-                                notificationsDropdown.classList.add('hidden');
-                                notificationsDropdown.classList.remove('flex');
-                            }, 200);
-                        }
+                        toggleDropdown(notificationsBtnHeader, notificationsDropdown, messagesDropdown);
                     });
                 }
 

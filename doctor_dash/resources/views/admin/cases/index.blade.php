@@ -45,142 +45,238 @@
                     <p class="text-gray-500 text-sm">No cases found in the system matching your criteria.</p>
                 </div>
             @else
-                <div class="pb-4">
-                    <table class="w-full text-left text-gray-300 whitespace-nowrap relative border-collapse text-xs">
-                        <thead class="sticky top-0 z-20 shadow-md">
-                            <tr class="border-b border-white/10">
-                                <th class="px-4 py-3 font-bold text-gray-400 uppercase tracking-widest text-[9px]">Patient Name</th>
-                                <th class="px-4 py-3 font-bold text-gray-400 uppercase tracking-widest text-[9px]">Submitted</th>
-                                <th class="px-4 py-3 font-bold text-gray-400 uppercase tracking-widest text-[9px]">Due Date</th>
-                                <th class="px-4 py-3 font-bold text-gray-400 uppercase tracking-widest text-[9px]">Updated By</th>
-                                <th class="px-4 py-3 font-bold text-gray-400 uppercase tracking-widest text-[9px] text-center">Status</th>
-                                <th class="px-4 py-3 font-bold text-gray-400 uppercase tracking-widest text-[9px]">Files</th>
-                                <th class="px-4 py-3 font-bold text-gray-400 uppercase tracking-widest text-[9px] text-center">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody class="bh-table-text">
-                            @foreach ($reports as $report)
-                                <tr class="transition-colors group hover:bg-white/[0.03]">
-                                    <td class="px-4 py-3 border-b border-white/10">
-                                        <a href="{{ route('admin.cases.batch', $report->batch_id) }}" 
-                                           target="_blank"
-                                           class="text-[#FACC15] font-bold text-xs tracking-tight hover:underline cursor-pointer">
-                                            {{ $report->title }}
-                                        </a>
-                                    </td>
-                                    <td class="px-4 py-3 border-b border-white/10">
+            <!-- Desktop Table (Hidden on mobile) -->
+            <div class="hidden md:block pb-4">
+                <table class="w-full text-left text-gray-300 whitespace-nowrap relative border-collapse text-xs">
+                    <thead class="sticky top-0 z-20 shadow-md">
+                        <tr class="border-b border-white/10">
+                            <th class="px-4 py-3 font-bold text-gray-400 uppercase tracking-widest text-[9px]">Patient Name</th>
+                            <th class="px-4 py-3 font-bold text-gray-400 uppercase tracking-widest text-[9px]">Submitted</th>
+                            <th class="px-4 py-3 font-bold text-gray-400 uppercase tracking-widest text-[9px]">Due Date</th>
+                            <th class="px-4 py-3 font-bold text-gray-400 uppercase tracking-widest text-[9px]">Updated By</th>
+                            <th class="px-4 py-3 font-bold text-gray-400 uppercase tracking-widest text-[9px] text-center">Status</th>
+                            <th class="px-4 py-3 font-bold text-gray-400 uppercase tracking-widest text-[9px]">Files</th>
+                            <th class="px-4 py-3 font-bold text-gray-400 uppercase tracking-widest text-[9px] text-center">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bh-table-text">
+                        @foreach ($reports as $report)
+                            <tr class="transition-colors group hover:bg-white/[0.03]">
+                                <td class="px-4 py-3 border-b border-white/10">
+                                    <a href="{{ route('admin.cases.batch', $report->batch_id) }}" 
+                                       target="_blank"
+                                       class="text-[#FACC15] font-bold text-xs tracking-tight hover:underline cursor-pointer">
+                                        {{ $report->title }}
+                                    </a>
+                                </td>
+                                <td class="px-4 py-3 border-b border-white/10">
+                                    <div class="flex flex-col">
+                                        <span class="text-white text-xs">{{ $report->created_at->format('M d, Y') }}</span>
+                                        <span class="text-gray-500 text-[10px]">{{ $report->created_at->format('h:i A') }}</span>
+                                    </div>
+                                </td>
+                                <td class="px-4 py-3 border-b border-white/10">
+                                    @php
+                                        $dueDate = $report->created_at->addDays(7);
+                                        $isOverdue = now()->isAfter($dueDate);
+                                    @endphp
+                                    <div class="flex flex-col">
+                                        <span class="text-xs {{ $isOverdue ? 'text-red-400' : 'text-white' }}">
+                                            {{ $dueDate->format('M d, Y') }}
+                                        </span>
+                                        @if($isOverdue)
+                                            <span class="text-red-400 text-[10px] font-bold">OVERDUE</span>
+                                        @else
+                                            <span class="text-gray-500 text-[10px]">{{ $dueDate->diffForHumans() }}</span>
+                                        @endif
+                                    </div>
+                                </td>
+                                <td class="px-4 py-3 border-b border-white/10">
+                                    @if($report->updatedBy)
                                         <div class="flex flex-col">
-                                            <span class="text-white text-xs">{{ $report->created_at->format('M d, Y') }}</span>
-                                            <span class="text-gray-500 text-[10px]">{{ $report->created_at->format('h:i A') }}</span>
-                                        </div>
-                                    </td>
-                                    <td class="px-4 py-3 border-b border-white/10">
-                                        @php
-                                            $dueDate = $report->created_at->addDays(7);
-                                            $isOverdue = now()->isAfter($dueDate);
-                                        @endphp
-                                        <div class="flex flex-col">
-                                            <span class="text-xs {{ $isOverdue ? 'text-red-400' : 'text-white' }}">
-                                                {{ $dueDate->format('M d, Y') }}
+                                            <span class="text-white text-xs">{{ $report->updatedBy->name }}</span>
+                                            <span class="text-[9px] text-[#FACC15] uppercase font-bold tracking-widest font-black mt-0.5">
+                                                {{ str_replace('_', ' ', $report->updatedBy->role) }}
                                             </span>
-                                            @if($isOverdue)
-                                                <span class="text-red-400 text-[10px] font-bold">OVERDUE</span>
-                                            @else
-                                                <span class="text-gray-500 text-[10px]">{{ $dueDate->diffForHumans() }}</span>
-                                            @endif
                                         </div>
-                                    </td>
-                                    <td class="px-4 py-3 border-b border-white/10">
-                                        @if($report->updatedBy)
-                                            <div class="flex flex-col">
-                                                <span class="text-white text-xs">{{ $report->updatedBy->name }}</span>
-                                                <span class="text-[9px] text-[#FACC15] uppercase font-bold tracking-widest font-black mt-0.5">
-                                                    {{ str_replace('_', ' ', $report->updatedBy->role) }}
-                                                </span>
+                                    @else
+                                        <span class="text-gray-500 text-xs">System</span>
+                                    @endif
+                                </td>
+                                <td class="px-4 py-3 text-center border-b border-white/10">
+                                    <div class="bh-badge {{ \App\Models\Report::STATUSES[$report->status] ?? '' }}">
+                                        {{ $report->status }}
+                                    </div>
+                                </td>
+                                <td class="px-4 py-3 border-b border-white/10">
+                                    @if ($report->files_count > 1)
+                                        <div class="flex flex-col gap-2">
+                                            <div class="flex items-center gap-2 text-white/90 text-[10px] font-bold uppercase tracking-widest">
+                                                <svg class="h-4 w-4 text-white/60" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" /></svg>
+                                                collection
                                             </div>
-                                        @else
-                                            <span class="text-gray-500 text-xs">System</span>
-                                        @endif
-                                    </td>
-                                    <td class="px-4 py-3 text-center border-b border-white/10">
-                                        <div class="bh-badge {{ \App\Models\Report::STATUSES[$report->status] ?? '' }}">
-                                            {{ $report->status }}
+                                            <div class="flex flex-col gap-1.5 pl-6">
+                                                <a href="{{ route('admin.cases.batch', $report->batch_id) }}" 
+                                                   target="_blank" 
+                                                   class="inline-flex items-center gap-2 text-[10px] font-bold text-[#FACC15] hover:text-white transition-colors">
+                                                    <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                                                    View Collection ({{ $report->files_count }})
+                                                </a>
+                                                <a href="{{ route('admin.cases.downloadBatch', $report->batch_id) }}" 
+                                                   class="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.1em] text-[#FACC15] hover:text-white transition-all bg-white/5 rounded-lg px-2.5 py-1 border border-white/10 hover:border-[#FACC15] w-fit">
+                                                    <svg class="h-3 w-3 text-[#FACC15]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                                                    Save Collection
+                                                </a>
+                                            </div>
                                         </div>
-                                    </td>
-                                    <td class="px-4 py-3 border-b border-white/10">
-                                        @if ($report->files_count > 1)
-                                            <div class="flex flex-col gap-2">
-                                                <div class="flex items-center gap-2 text-white/90 text-[10px] font-bold uppercase tracking-widest">
-                                                    <svg class="h-4 w-4 text-white/60" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" /></svg>
-                                                    collection
-                                                </div>
-                                                <div class="flex flex-col gap-1.5 pl-6">
-                                                    <a href="{{ route('admin.cases.batch', $report->batch_id) }}" 
-                                                       target="_blank" 
-                                                       class="inline-flex items-center gap-2 text-[10px] font-bold text-[#FACC15] hover:text-white transition-colors">
-                                                        <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
-                                                        View Collection ({{ $report->files_count }})
-                                                    </a>
-                                                    <a href="{{ route('admin.cases.downloadBatch', $report->batch_id) }}" 
-                                                       class="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.1em] text-[#FACC15] hover:text-white transition-all bg-white/5 rounded-lg px-2.5 py-1 border border-white/10 hover:border-[#FACC15] w-fit">
-                                                        <svg class="h-3 w-3 text-[#FACC15]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-                                                        Save Collection
-                                                    </a>
-                                                </div>
+                                    @else
+                                        <div class="flex flex-col gap-2">
+                                            <div class="flex items-center gap-2 text-white/90 text-[10px] font-bold uppercase tracking-widest">
+                                                <svg class="h-4 w-4 text-white/60" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                                                Single File
                                             </div>
-                                        @else
-                                            <div class="flex flex-col gap-2">
-                                                <div class="flex items-center gap-2 text-white/90 text-[10px] font-bold uppercase tracking-widest">
-                                                    <svg class="h-4 w-4 text-white/60" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-                                                    Single File
-                                                </div>
-                                                <div class="flex flex-col gap-1.5 pl-6">
-                                                    <button type="button" 
-                                                        onclick='window.openBHPreview({
-                                                            url: {{ json_encode(route("admin.cases.preview", $report)) }},
-                                                            downloadUrl: {{ json_encode(route("admin.cases.download", $report)) }},
-                                                            mime: {{ json_encode($report->mime_type) }},
-                                                            title: {{ json_encode($report->title) }},
-                                                            name: {{ json_encode($report->original_name) }},
-                                                            created: {{ json_encode($report->created_at->format("Y-m-d H:i")) }}
-                                                        })' 
-                                                        class="inline-flex items-center gap-2 text-[10px] font-bold text-[#FACC15] hover:text-white transition-colors">
-                                                        <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
-                                                        View File
-                                                    </button>
-                                                    <a href="{{ route('admin.cases.download', $report) }}" 
-                                                       class="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.1em] text-[#FACC15] hover:text-white transition-all bg-white/5 rounded-lg px-2.5 py-1 border border-white/10 hover:border-[#FACC15] w-fit">
-                                                        <svg class="h-3 w-3 text-[#FACC15]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-                                                        Save File
-                                                    </a>
-                                                </div>
-                                            </div>
-                                        @endif
-                                    </td>
-                                        <td class="px-4 py-3 text-center static border-b border-white/10">
-                                            <div class="relative inline-block w-full max-w-[140px] scale-90 text-left dropdown-container">
-                                                <button type="button" onclick="toggleDropdown(this)" 
-                                                    class="w-full flex items-center justify-between gap-2 rounded-lg border border-white/10 bg-[#0c0c0c] px-3 py-1.5 text-[9px] font-bold uppercase tracking-widest text-white hover:border-[#FACC15] transition-all dropdown-btn">
-                                                    <span>Actions</span>
-                                                    <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                                            <div class="flex flex-col gap-1.5 pl-6">
+                                                <button type="button" 
+                                                    onclick='window.openBHPreview({
+                                                        url: {{ json_encode(route("admin.cases.preview", $report)) }},
+                                                        downloadUrl: {{ json_encode(route("admin.cases.download", $report)) }},
+                                                        mime: {{ json_encode($report->mime_type) }},
+                                                        title: {{ json_encode($report->title) }},
+                                                        name: {{ json_encode($report->original_name) }},
+                                                        created: {{ json_encode($report->created_at->format("Y-m-d H:i")) }}
+                                                    })' 
+                                                    class="inline-flex items-center gap-2 text-[10px] font-bold text-[#FACC15] hover:text-white transition-colors">
+                                                    <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                                                    View File
                                                 </button>
-                                                <div class="hidden dropdown-menu absolute right-0 top-full z-[9999] mt-2 w-65 flex flex-col rounded-xl border border-white/10 bg-[#0c0c0c] shadow-2xl backdrop-blur-xl max-h-[250px] overflow-y-auto overflow-x-hidden origin-top-right">
-                                                    @foreach(\App\Models\Report::STATUSES as $statusName => $statusClass)
-                                                        <button onclick="updateReportStatusManually({{ $report->id }}, '{{ $statusName }}', this)" 
-                                                            class="w-full px-4 py-2 text-left group/item transition-colors hover:bg-white/5">
-                                                            <span class="text-[10px] font-semibold text-gray-300 group-hover/item:text-white uppercase tracking-wider">
-                                                                {{ $statusName }}
-                                                            </span>
-                                                        </button>
-                                                    @endforeach
-                                                </div>
+                                                <a href="{{ route('admin.cases.download', $report) }}" 
+                                                   class="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.1em] text-[#FACC15] hover:text-white transition-all bg-white/5 rounded-lg px-2.5 py-1 border border-white/10 hover:border-[#FACC15] w-fit">
+                                                    <svg class="h-3 w-3 text-[#FACC15]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                                                    Save File
+                                                </a>
                                             </div>
-                                        </td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                </div>
+                                        </div>
+                                    @endif
+                                </td>
+                                    <td class="px-4 py-3 text-center static border-b border-white/10">
+                                        <div class="relative inline-block w-full max-w-[140px] scale-90 text-left dropdown-container">
+                                            <button type="button" onclick="toggleDropdown(this)" 
+                                                class="w-full flex items-center justify-between gap-2 rounded-lg border border-white/10 bg-[#0c0c0c] px-3 py-1.5 text-[9px] font-bold uppercase tracking-widest text-white hover:border-[#FACC15] transition-all dropdown-btn">
+                                                <span>Actions</span>
+                                                <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                                            </button>
+                                            <div class="hidden dropdown-menu absolute right-0 top-full z-[9999] mt-2 w-64 flex flex-col rounded-xl border border-white/10 bg-[#0c0c0c] shadow-2xl backdrop-blur-xl max-h-[250px] overflow-y-auto overflow-x-hidden origin-top-right">
+                                                @foreach(\App\Models\Report::STATUSES as $statusName => $statusClass)
+                                                    <button onclick="updateReportStatusManually({{ $report->id }}, '{{ $statusName }}', this)" 
+                                                        class="w-full px-4 py-2 text-left group/item transition-colors hover:bg-white/5">
+                                                        <span class="text-[10px] font-semibold text-gray-300 group-hover/item:text-white uppercase tracking-wider">
+                                                            {{ $statusName }}
+                                                        </span>
+                                                    </button>
+                                                @endforeach
+                                            </div>
+                                        </div>
+                                    </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Mobile View (Cards) -->
+            <div class="md:hidden divide-y divide-white/5">
+                @foreach ($reports as $report)
+                    <div class="p-4 space-y-4">
+                        <div class="flex items-start justify-between">
+                            <div class="flex flex-col">
+                                <a href="{{ route('admin.cases.batch', $report->batch_id) }}" 
+                                   target="_blank"
+                                   class="text-[#FACC15] font-bold text-sm tracking-tight hover:underline">
+                                    {{ $report->title }}
+                                </a>
+                                <div class="flex items-center gap-2 mt-1">
+                                    <span class="text-gray-500 text-[10px] uppercase font-bold tracking-wider">
+                                        {{ $report->created_at->format('M d, Y') }}
+                                    </span>
+                                    <span class="w-1 h-1 rounded-full bg-gray-700"></span>
+                                    <span class="text-gray-500 text-[10px] font-medium">
+                                        {{ $report->created_at->format('h:i A') }}
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="bh-badge {{ \App\Models\Report::STATUSES[$report->status] ?? '' }} scale-90 origin-right">
+                                {{ $report->status }}
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-4 bg-white/[0.02] rounded-xl p-3 border border-white/5">
+                            <div>
+                                <p class="text-[9px] font-bold text-gray-500 uppercase tracking-widest mb-1">Due Date</p>
+                                @php
+                                    $dueDate = $report->created_at->addDays(7);
+                                    $isOverdue = now()->isAfter($dueDate);
+                                @endphp
+                                <p class="text-[11px] font-bold {{ $isOverdue ? 'text-red-400' : 'text-white' }}">
+                                    {{ $dueDate->format('M d, Y') }}
+                                </p>
+                            </div>
+                            <div>
+                                <p class="text-[9px] font-bold text-gray-500 uppercase tracking-widest mb-1">Updated By</p>
+                                @if($report->updatedBy)
+                                    <p class="text-[11px] text-white font-bold">{{ $report->updatedBy->name }}</p>
+                                @else
+                                    <p class="text-[11px] text-gray-400">System</p>
+                                @endif
+                            </div>
+                        </div>
+
+                        <div class="flex flex-wrap items-center gap-3">
+                            <div class="flex-1 min-w-[140px]">
+                                @if ($report->files_count > 1)
+                                    <a href="{{ route('admin.cases.batch', $report->batch_id) }}" 
+                                       target="_blank"
+                                       class="flex items-center justify-center gap-2 w-full py-2 bg-white/5 border border-white/10 rounded-lg text-[10px] font-bold text-[#FACC15] hover:bg-white/10 transition-all">
+                                        <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" /></svg>
+                                        Collection ({{ $report->files_count }})
+                                    </a>
+                                @else
+                                    <button type="button" 
+                                        onclick='window.openBHPreview({
+                                            url: {{ json_encode(route("admin.cases.preview", $report)) }},
+                                            downloadUrl: {{ json_encode(route("admin.cases.download", $report)) }},
+                                            mime: {{ json_encode($report->mime_type) }},
+                                            title: {{ json_encode($report->title) }},
+                                            name: {{ json_encode($report->original_name) }},
+                                            created: {{ json_encode($report->created_at->format("Y-m-d H:i")) }}
+                                        })' 
+                                        class="flex items-center justify-center gap-2 w-full py-2 bg-white/5 border border-white/10 rounded-lg text-[10px] font-bold text-[#FACC15] hover:bg-white/10 transition-all">
+                                        <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                                        View File
+                                    </button>
+                                @endif
+                            </div>
+
+                            <div class="relative flex-1 min-w-[120px] dropdown-container">
+                                <button type="button" onclick="toggleDropdown(this)" 
+                                    class="flex items-center justify-between gap-2 w-full py-2 bg-[#FACC15] border border-[#FACC15] rounded-lg text-[10px] font-black text-black hover:bg-[#EAB308] transition-all dropdown-btn">
+                                    <span class="pl-2">Update Status</span>
+                                    <svg class="h-3.5 w-3.5 pr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"></path></svg>
+                                </button>
+                                <div class="hidden dropdown-menu absolute right-0 bottom-full mb-2 z-50 w-full min-w-[160px] flex flex-col rounded-xl border border-white/10 bg-[#0c0c0c] shadow-2xl backdrop-blur-xl max-h-[200px] overflow-y-auto origin-bottom-right">
+                                    @foreach(\App\Models\Report::STATUSES as $statusName => $statusClass)
+                                        <button onclick="updateReportStatusManually({{ $report->id }}, '{{ $statusName }}', this)" 
+                                            class="w-full px-4 py-2.5 text-left border-b border-white/5 last:border-0 transition-colors hover:bg-white/5">
+                                            <span class="text-[10px] font-bold text-gray-300 hover:text-white uppercase tracking-wider">
+                                                {{ $statusName }}
+                                            </span>
+                                        </button>
+                                    @endforeach
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
             </div>
 
             <div class="pt-3 px-4 pb-4">

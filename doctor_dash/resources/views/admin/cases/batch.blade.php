@@ -43,7 +43,7 @@
                 </div>
             </div>
             
-            <div class="space-y-16">
+            <div class="space-y-10 md:space-y-16">
                 <div>
                     <h4 class="text-[12px] font-black text-[#FACC15] uppercase tracking-[0.2em] mb-1">CASE TITLE</h4>
                     <p class="text-white text-2xl font-medium leading-relaxed max-w-4xl whitespace-pre-wrap mb-3">{{ $title }}</p>
@@ -58,7 +58,7 @@
                     @endif
                 </div>
 
-                <div class="py-6 border-t border-white/5 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-12">
+                <div class="py-6 border-t border-white/5 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 md:gap-12">
                     
                   
 

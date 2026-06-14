@@ -121,4 +121,15 @@ return [
         ],
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Analytics Report Settings
+    |--------------------------------------------------------------------------
+    |
+    | This email address will receive the daily analytics PDF reports.
+    |
+    */
+
+    'analytics_report_recipient' => env('ANALYTICS_REPORT_EMAIL', 'info@bone-hard.com'),
+
 ];

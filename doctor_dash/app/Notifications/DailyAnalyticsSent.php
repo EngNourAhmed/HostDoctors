@@ -37,12 +37,13 @@ class DailyAnalyticsSent extends Notification
      */
     public function toArray(object $notifiable): array
     {
+        $recipient = config('mail.analytics_report_recipient');
         return [
             'title' => 'Daily Analytics Sent',
-            'message' => 'The daily analytics report for ' . $this->date . ' has been sent to info@bone-hard.com',
+            'message' => "The daily analytics report for {$this->date} has been sent to {$recipient}",
             'type' => 'analytics',
             'icon' => 'fas fa-chart-line',
-            'link' => route('admin.analytics'),
+            'link' => route('admin.analytics.index'),
         ];
     }
 }
